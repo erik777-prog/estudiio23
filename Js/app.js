@@ -3,6 +3,39 @@ const THEME = {
     POINTS_TARGET: 20000,
     REDEEM_ZERO_ALL: false
   };
+
+// Chave de acesso para o painel admin (só você saberá)
+const ADMIN_ACCESS_KEY = 'erik_cunha_estudio23_2024_admin';
+
+// Planos de assinatura disponíveis
+const SUBSCRIPTION_PLANS = {
+  monthly: {
+    id: 'monthly',
+    name: 'Plano Mensal',
+    price: 119.99,
+    duration: 30, // dias
+    benefits: {
+      lavagemSimples: 2,
+      desconto: 15,
+      pontosBonus: 800
+    }
+  },
+  monthlyPlus: {
+    id: 'monthlyPlus',
+    name: 'Plano Mensal Plus',
+    price: 224.99,
+    duration: 30, // dias
+    benefits: {
+      lavagemSimples: 4,
+      desconto: 20,
+      pontosBonus: 1500
+    }
+  }
+};
+  
+  // Variáveis globais para controlar o mês atual no calendário
+  let calendarCurrentMonth = new Date().getMonth();
+  let calendarCurrentYear = new Date().getFullYear();
   
   const SERVICES = [
     {id:'lavagem_simples', nome:'Lavagem Simples', preco:70.00, pontos:1000, img:'public/services/lavagem_simples.png'},
@@ -36,7 +69,7 @@ const THEME = {
     slots: get('slots') || [],
     history: get('history') || [],
     agendamento: get('agendamento') || null, // Adicionado para armazenar o agendamento escolhido
-    buscaLeva: get('buscaLeva') || false, // Adicionado para controlar o switch
+    buscaLeva: get('buscaLeva') || null, // null = não decidiu, true/false = decidiu
     subscription: get('subscription') || null // Adicionado para armazenar a assinatura
   };
   
@@ -49,6 +82,27 @@ const THEME = {
   function get(k){ try{ return JSON.parse(localStorage.getItem(KEY(k))); }catch{ return null; } }
   const maskPhone = p => !p ? '' : '('+p.slice(0,2)+') '+p.slice(2,7)+'-'+p.slice(7,11);
   
+  /* ================ FUNÇÕES DE NAVEGAÇÃO DO CALENDÁRIO ================ */
+  
+  // Funções de navegação do calendário
+  function showNextMonth() {
+    calendarCurrentMonth++;
+    if (calendarCurrentMonth > 11) {
+      calendarCurrentMonth = 0;
+      calendarCurrentYear++;
+    }
+    renderAgendaCalendar();
+  }
+  
+  function showPreviousMonth() {
+    calendarCurrentMonth--;
+    if (calendarCurrentMonth < 0) {
+      calendarCurrentMonth = 11;
+      calendarCurrentYear--;
+    }
+    renderAgendaCalendar();
+  }
+  
   /* ================ BOOT (Splash -> Signup or App) ================ */
   window.addEventListener('load', ()=>{
     // splash screen
@@ -56,11 +110,9 @@ const THEME = {
       const splash = document.getElementById('splash');
       splash.style.opacity = 0; splash.style.pointerEvents = 'none';
       setTimeout(()=>splash.style.display='none', 380);
-      if(!state.client){
-        $('#signup').classList.remove('hidden');
-      } else {
-        bootApp();
-      }
+      
+      // Sempre chamar bootApp para verificar se há cliente salvo
+      bootApp();
       
 
     }, 1600);
@@ -119,89 +171,116 @@ const THEME = {
     localStorage.setItem(cid, JSON.stringify(client));
     localStorage.setItem('cid', cid);
     
-    // Salvar dados iniciais se for novo cliente
-    if (!existingCid) {
-      localStorage.setItem(`points_${cid}`, '0');
-      localStorage.setItem(`cart_${cid}`, '[]');
-      localStorage.setItem(`agendamento_${cid}`, 'null');
-      localStorage.setItem(`buscaLeva_${cid}`, 'false');
-      localStorage.setItem(`subscription_${cid}`, 'null');
-      localStorage.setItem(`history_${cid}`, '[]');
-      localStorage.setItem(`bonus_week_${cid}`, 'false');
-    }
+
     
     // Atualizar estado
     state.client = client;
-    state.points = existingCid ? (parseInt(localStorage.getItem(`points_${cid}`)) || 0) : 0;
-    state.cart = existingCid ? (JSON.parse(localStorage.getItem(`cart_${cid}`)) || []) : [];
-    state.agendamento = existingCid ? (JSON.parse(localStorage.getItem(`agendamento_${cid}`)) || null) : null;
-    state.buscaLeva = existingCid ? (JSON.parse(localStorage.getItem(`buscaLeva_${cid}`)) || false) : false;
-    state.subscription = existingCid ? (JSON.parse(localStorage.getItem(`subscription_${cid}`)) || null) : null;
+    
+    // Carregar dados salvos se for cliente existente
+    if (existingCid) {
+      loadClientData();
+    } else {
+      // Inicializar dados para novo cliente
+      state.points = 0;
+      state.cart = [];
+      state.agendamento = null;
+      state.buscaLeva = false;
+      state.subscription = null;
+      state.history = [];
+    }
+    
+    // Salvar dados do cliente
+    saveClientData();
     
     // Ocultar tela de login
     $('#signup').classList.add('hidden');
     
     // Atualizar interface
-    renderClientChip();
-    renderServices();
-    renderCart();
-    renderPoints();
-    renderHistory();
-    renderRewards();
-    renderSubscriptionStatus();
+    updateAllUI();
     
     // Verificar e mostrar botão admin
     toggleAdminButton();
     
+    // Verificar status do login
+    checkLoginStatus();
+    
     // Mensagem de boas-vindas
     toast(`Bem-vindo, ${name}!`);
+    
+    console.log('✅ Login realizado com sucesso:', state.client);
   });
   
   /* ================ APP BOOT ================= */
   function bootApp(){
+    console.log('🚀 Iniciando aplicação...');
+    
     // Verificar se já existe um cliente logado
     const savedCid = localStorage.getItem('cid');
+    console.log('📱 CID salvo:', savedCid);
+    
     if (savedCid) {
       const savedClient = localStorage.getItem(savedCid);
+      console.log('👤 Cliente salvo:', savedClient);
+      
       if (savedClient) {
         try {
           state.client = JSON.parse(savedClient);
+          console.log('✅ Cliente carregado:', state.client);
           
-          // Carregar outros dados salvos
-          const savedPoints = localStorage.getItem(`points_${savedCid}`);
-          if (savedPoints) state.points = parseInt(savedPoints);
-          
-          const savedCart = localStorage.getItem(`cart_${savedCid}`);
-          if (savedCart) state.cart = JSON.parse(savedCart);
-          
-          const savedAgendamento = localStorage.getItem(`agendamento_${savedCid}`);
-          if (savedAgendamento) state.agendamento = JSON.parse(savedAgendamento);
-          
-          const savedBuscaLeva = localStorage.getItem(`buscaLeva_${savedCid}`);
-          if (savedBuscaLeva) state.buscaLeva = JSON.parse(savedBuscaLeva);
-          
-          const savedSubscription = localStorage.getItem(`subscription_${savedCid}`);
-          if (savedSubscription) state.subscription = JSON.parse(savedSubscription);
+          // Carregar todos os dados salvos do cliente
+          loadClientData();
           
           // Ocultar tela de login
-          document.getElementById('signup').classList.add('hidden');
+          const loginScreen = document.getElementById('signup');
+          if (loginScreen) {
+            loginScreen.classList.add('hidden');
+            console.log('✅ Tela de login ocultada');
+          }
+          
+          // Atualizar interface
+          updateAllUI();
+          
+          console.log('✅ Login automático realizado com sucesso!');
           
         } catch (error) {
           console.error('❌ Erro ao carregar dados do cliente:', error);
           // Se der erro, limpar e mostrar login
           localStorage.removeItem('cid');
-          document.getElementById('signup').classList.remove('hidden');
+          showLoginScreen();
         }
       } else {
         // CID existe mas cliente não encontrado
+        console.log('❌ CID existe mas cliente não encontrado');
         localStorage.removeItem('cid');
-        document.getElementById('signup').classList.remove('hidden');
+        showLoginScreen();
       }
     } else {
       // Nenhum cliente logado, mostrar tela de login
-      document.getElementById('signup').classList.remove('hidden');
+      console.log('❌ Nenhum cliente logado');
+      showLoginScreen();
     }
     
+    // Verificar e mostrar botão admin
+    toggleAdminButton();
+    
+    // Verificar status do login
+    checkLoginStatus();
+    
+    // Event listeners
+    setupEventListeners();
+  }
+  
+  // Função para mostrar tela de login
+  function showLoginScreen() {
+    const loginScreen = document.getElementById('signup');
+    if (loginScreen) {
+      loginScreen.classList.remove('hidden');
+      console.log('📱 Tela de login exibida');
+    }
+  }
+  
+  // Função para atualizar toda a interface
+  function updateAllUI() {
     renderClientChip();
     renderServices();
     renderCart();
@@ -209,27 +288,46 @@ const THEME = {
     renderHistory();
     renderRewards();
     renderSubscriptionStatus();
-    
-    // Verificar e mostrar botão admin
-    toggleAdminButton();
-    
-    // backtop appear
-    window.addEventListener('scroll', ()=>{
-      if(window.scrollY > 260) $('#btnTop').classList.remove('hidden'); else $('#btnTop').classList.add('hidden');
-    });
+    renderAgendamentoStatus();
+    console.log('🎨 Interface atualizada');
   }
   
+  // Função para configurar event listeners
+  function setupEventListeners() {
 
+    
+    // Atualizar client-chip quando a tela redimensionar
+    window.addEventListener('resize', () => {
+      renderClientChip();
+    });
+    
+    // Salvar dados automaticamente quando a página for fechada
+    window.addEventListener('beforeunload', () => {
+      saveClientData();
+      console.log('💾 Dados salvos antes de fechar');
+    });
+    
+    // Salvar dados periodicamente (a cada 30 segundos)
+    setInterval(() => {
+      if (state.client) {
+        saveClientData();
+        console.log('💾 Salvamento automático realizado');
+      }
+    }, 30000);
+  }
   
   /* ================ UI ACTIONS =================== */
   function attachUIActions(){
-    $('#btnClearCart').addEventListener('click', ()=>{ state.cart=[]; set('cart', state.cart); renderCart(); });
+    $('#btnClearCart').addEventListener('click', ()=>{ 
+      state.cart=[]; 
+      set('cart', state.cart); 
+      renderCart(); 
+      limparAgendamentoTemporario(); // Limpar agendamento se carrinho vazio
+    });
     $('#btnShare').addEventListener('click', shareLink);
     $('#btnSaveClient').addEventListener('click', saveClient);
     $('#btnCopyLink').addEventListener('click', copyLink);
-    $('#btnTop').addEventListener('click', ()=>{
-      window.scrollTo({top:0,behavior:'smooth'});
-    });
+
   
     $('#payMethod').addEventListener('change', ()=>{
       $('#pixBox').classList.add('hidden'); $('#cardBox').classList.add('hidden');
@@ -248,7 +346,34 @@ const THEME = {
   
   /* ================ CLIENT / PROFILE ================= */
   function renderClientChip(){
-    $('#clientChip').textContent = state.client?.name ? `${state.client.name} · ${maskPhone(state.client.phone)}` : 'Cliente anônimo';
+    const clientChip = $('#clientChip');
+    if (!clientChip) return;
+    
+    if (state.client?.name) {
+      // Verificar largura da tela para decidir formato
+      const isMobile = window.innerWidth <= 480;
+      const isSmallMobile = window.innerWidth <= 360;
+      
+      let displayText;
+      if (isSmallMobile) {
+        // Para telas muito pequenas, mostrar apenas nome abreviado
+        const shortName = state.client.name.split(' ')[0];
+        displayText = `${shortName} · ${maskPhone(state.client.phone)}`;
+      } else if (isMobile) {
+        // Para mobile, mostrar nome completo mas compacto
+        displayText = `${state.client.name} · ${maskPhone(state.client.phone)}`;
+      } else {
+        // Para desktop, mostrar formato completo
+        displayText = `${state.client.name} · ${maskPhone(state.client.phone)}`;
+      }
+      
+      clientChip.textContent = displayText;
+      clientChip.title = `${state.client.name} · ${state.client.phone}`; // Tooltip com info completa
+    } else {
+      clientChip.textContent = 'Cliente anônimo';
+      clientChip.title = '';
+    }
+    
     $('#clientName').value = state.client?.name || '';
     $('#clientPhone').value = state.client?.phone || '';
   }
@@ -288,31 +413,7 @@ const THEME = {
   function renderPoints(){ $('#pointsKpi').textContent = (state.points||0).toLocaleString('pt-BR'); }
   function addPoints(pts){ state.points = (state.points||0) + pts; set('points', state.points); renderPoints(); }
   
-  /* ================ ASSINATURA ================= */
-  const SUBSCRIPTION_PLANS = {
-    monthly: {
-      id: 'monthly',
-      name: 'Plano Mensal',
-      price: 119.99,
-      duration: 30, // dias
-      benefits: {
-        lavagemSimples: 2,
-        desconto: 15,
-        pontosBonus: 800
-      }
-    },
-    monthlyPlus: {
-      id: 'monthlyPlus',
-      name: 'Plano Mensal Plus',
-      price: 224.99,
-      duration: 30, // dias
-      benefits: {
-        lavagemSimples: 4,
-        desconto: 20,
-        pontosBonus: 1500
-      }
-    }
-  };
+
   
   function subscribeToPlan(planId) {
     const plan = SUBSCRIPTION_PLANS[planId];
@@ -360,16 +461,18 @@ const THEME = {
   function renderSubscriptionStatus() {
     const statusBadge = document.getElementById('statusBadgeTop');
     const statusText = document.getElementById('statusTextTop');
+    const subscriptionIcon = document.getElementById('subscriptionIconTop');
     
-    if (!statusBadge || !statusText) return;
+    if (!statusBadge || !statusText || !subscriptionIcon) return;
     
     if (!state.subscription || !state.subscription.active) {
       statusBadge.textContent = 'Sem assinatura';
       statusBadge.className = 'status-badge';
+      subscriptionIcon.textContent = '💳';
       statusText.innerHTML = `
-        <div style="color: #999; text-align: center; line-height: 1.4;">
+        <div style="color: #ccc; line-height: 1.4;">
           Você ainda não possui uma assinatura ativa<br>
-          <span style="color: #ff7f00; font-size: 0.9rem;">Clique em "Assinatura" para ver os planos disponíveis</span>
+          <span style="color: #ff7f00; font-size: 0.9rem;">Clique em "Ver Planos" para conhecer nossos benefícios</span>
         </div>
       `;
       return;
@@ -387,8 +490,9 @@ const THEME = {
       
       statusBadge.textContent = 'Expirada';
       statusBadge.className = 'status-badge expired';
+      subscriptionIcon.textContent = '⚠️';
       statusText.innerHTML = `
-        <div style="color: #999; text-align: center; line-height: 1.4;">
+        <div style="color: #ccc; line-height: 1.4;">
           Sua assinatura <strong>${state.subscription.planName}</strong> expirou<br>
           <span style="color: #ff7f00; font-size: 0.9rem;">Renove para continuar aproveitando os benefícios!</span>
         </div>
@@ -397,6 +501,7 @@ const THEME = {
       // Assinatura ativa - mostrar detalhes completos
       statusBadge.textContent = 'Ativa';
       statusBadge.className = 'status-badge active';
+      subscriptionIcon.textContent = '⭐';
       
       const lavagensRestantes = state.subscription.benefits.lavagemSimples - state.subscription.usedServices.lavagemSimples;
       const lavagensUsadas = state.subscription.usedServices.lavagemSimples;
@@ -576,6 +681,7 @@ const THEME = {
     set('cart', state.cart);
     renderCart();
     toast('Item removido do carrinho');
+    limparAgendamentoTemporario(); // Limpar agendamento se carrinho ficar vazio
   }
   
   function renderCart(){
@@ -627,7 +733,14 @@ const THEME = {
       buscaSwitch = document.createElement('div');
       buscaSwitch.id = 'buscaSwitch';
       buscaSwitch.className = 'busca-switch-row';
-      buscaSwitch.innerHTML = `<span style='flex:1;text-align:left'>Busca e Leva</span><label class='busca-switch' style='margin-left:auto'><input type='checkbox' id='buscaLevaCheck' ${state.buscaLeva?'checked':''}></label>`;
+      buscaSwitch.innerHTML = `
+        <div class="busca-leva-simple">
+          <span class="busca-leva-title">Busca e Leva (R$ 4,99)</span>
+          <label class='busca-switch ${state.buscaLeva === null ? 'busca-switch-pending' : ''}'>
+            <input type='checkbox' id='buscaLevaCheck' ${state.buscaLeva === true ? 'checked' : ''}>
+          </label>
+        </div>
+      `;
       box.parentElement.insertBefore(buscaSwitch, box.parentElement.firstChild);
       document.getElementById('buscaLevaCheck').onchange = (e)=>{
         state.buscaLeva = e.target.checked;
@@ -635,7 +748,7 @@ const THEME = {
         renderCart();
       };
     }
-    let busca = state.buscaLeva ? 4.99 : 0;
+    let busca = state.buscaLeva === true ? 4.99 : 0;
     let totalFinal = total + busca;
     $('#cartTotal').textContent = money(totalFinal);
     
@@ -645,6 +758,7 @@ const THEME = {
       payBox = document.createElement('div');
       payBox.id = 'payBoxCustom';
       box.parentElement.appendChild(payBox);
+      console.log('✅ PayBox criado');
     }
     
     // Texto especial se tiver assinatura
@@ -665,7 +779,19 @@ const THEME = {
         <button class="btn primary" id="btnShowPix">Fazer pagamento</button>
       </div>
     `;
+    
+    console.log('✅ Botão "Fazer pagamento" criado');
+    
     document.getElementById('btnShowPix').onclick = () => {
+      console.log('🔄 Botão "Fazer pagamento" clicado!');
+      
+      // Validação antes de prosseguir para pagamento
+      const validacao = validarPagamento();
+      if (!validacao.valido) {
+        mostrarErroValidacao(validacao.erros);
+        return;
+      }
+      
       scrollToSection('sec-pay');
       setTimeout(()=>{
         mostrarPixPagamento();
@@ -680,6 +806,7 @@ const THEME = {
               btn.disabled = false;
               btn.classList.remove('btn-disabled');
               btn.classList.add('btn-success');
+              console.log('✅ Botão "Já fiz o pagamento" habilitado!');
             }
             clearInterval(countdown20s);
           }
@@ -766,12 +893,16 @@ const THEME = {
         // Limpar contadores quando botão for clicado
         const btnEnviar = document.getElementById('btnEnviarPedido');
         if (btnEnviar) {
+          console.log('✅ Botão "Já fiz o pagamento" encontrado, configurando...');
           btnEnviar.onclick = () => {
+            console.log('🔄 Botão "Já fiz o pagamento" clicado!');
             clearInterval(countdown5min);
             clearInterval(countdown20s);
             contadorDiv.remove();
             enviarPedidoWhatsApp();
           };
+        } else {
+          console.log('❌ Botão "Já fiz o pagamento" NÃO encontrado!');
         }
         
       }, 400);
@@ -908,33 +1039,16 @@ const THEME = {
     
     console.log('✅ Confirmando agendamento:', data, horario);
     
-    // Salvar agendamento no estado
+    // Salvar agendamento no estado (apenas reserva temporária)
     state.agendamento = { data, horario };
     
-    // Salvar no localStorage
-    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
-    
-    // Adicionar este agendamento e os próximos 3 horários (2 horas = 4 slots de 30 min)
-    const [hora, minuto] = horario.split(':').map(Number);
-    for (let i = 0; i < 4; i++) {
-      const horarioMinutos = hora * 60 + minuto + (i * 30);
-      const horaVerificar = Math.floor(horarioMinutos / 60);
-      const minutoVerificar = horarioMinutos % 60;
-      const horarioString = `${horaVerificar.toString().padStart(2, '0')}:${minutoVerificar.toString().padStart(2, '0')}`;
-      
-      // Verificar se não está duplicado
-      const jaExiste = agendamentosGlobais.some(ag => ag.data === data && ag.horario === horarioString);
-      if (!jaExiste) {
-        agendamentosGlobais.push({
-          data: data,
-          horario: horarioString,
-          cliente: state.client ? state.client.name : 'Cliente',
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-    
-    localStorage.setItem('agendamentosGlobais', JSON.stringify(agendamentosGlobais));
+    // NOTA: Não bloquear horários agora - só bloquear após pagamento confirmado
+  
+  // Salvar agendamento temporário (sem bloquear)
+  set('agendamento', state.agendamento);
+  
+  // Iniciar temporizador de 5 minutos para reserva temporária
+  iniciarTemporizadorReserva();
     
     // Atualizar interface
     document.getElementById('agendamentoEscolhido').innerHTML = `
@@ -961,8 +1075,6 @@ const THEME = {
     if (!calendar) return;
     
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
     
     // Nomes dos meses
     const monthNames = [
@@ -974,9 +1086,9 @@ const THEME = {
     const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     
     // Primeiro dia do mês
-    const firstDay = new Date(currentYear, currentMonth, 1);
+    const firstDay = new Date(calendarCurrentYear, calendarCurrentMonth, 1);
     // Último dia do mês
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const lastDay = new Date(calendarCurrentYear, calendarCurrentMonth + 1, 0);
     
     // Dia da semana do primeiro dia (0 = Domingo, 1 = Segunda, etc.)
     const firstDayOfWeek = firstDay.getDay();
@@ -986,7 +1098,15 @@ const THEME = {
     
     let calendarHTML = `
       <div class="calendar-header">
-        <h3>${monthNames[currentMonth]} ${currentYear}</h3>
+        <div class="calendar-navigation">
+          <button class="btn-nav" onclick="showPreviousMonth()" ${calendarCurrentMonth === today.getMonth() && calendarCurrentYear === today.getFullYear() ? 'disabled' : ''}>
+            &lt;
+          </button>
+          <h3>${monthNames[calendarCurrentMonth]} ${calendarCurrentYear}</h3>
+          <button class="btn-nav" onclick="showNextMonth()">
+            &gt;
+          </button>
+        </div>
       </div>
       <div class="calendar-days">
         ${dayNames.map(day => `<div class="day-name">${day}</div>`).join('')}
@@ -999,9 +1119,9 @@ const THEME = {
     
     // Adicionar os dias do mês
     for (let day = 1; day <= totalDays; day++) {
-      const currentDate = new Date(currentYear, currentMonth, day);
+      const currentDate = new Date(calendarCurrentYear, calendarCurrentMonth, day);
       const dayOfWeek = currentDate.getDay();
-      const isToday = day === today.getDate() && currentMonth === today.getMonth();
+      const isToday = day === today.getDate() && calendarCurrentMonth === today.getMonth() && calendarCurrentYear === today.getFullYear();
       const isPast = currentDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Domingo ou Sábado
       const isAvailable = !isPast && !isWeekend && dayOfWeek >= 1 && dayOfWeek <= 5; // Segunda a Sexta
@@ -1032,7 +1152,7 @@ const THEME = {
     
     // Selecionar o primeiro dia disponível por padrão
     const firstAvailableDay = Math.max(1, today.getDate());
-    if (firstAvailableDay <= totalDays) {
+    if (firstAvailableDay <= totalDays && calendarCurrentMonth === today.getMonth() && calendarCurrentYear === today.getFullYear()) {
       // Aguardar um pouco para o DOM ser renderizado
       setTimeout(() => {
         selectDate(firstAvailableDay);
@@ -1054,7 +1174,7 @@ const THEME = {
     
     // Formatar data para renderizar horários (corrigindo o problema do dia anterior)
     const today = new Date();
-    const selectedDate = new Date(today.getFullYear(), today.getMonth(), day);
+    const selectedDate = new Date(calendarCurrentYear, calendarCurrentMonth, day);
     
     // Usar a data exata sem conversão de fuso horário
     const year = selectedDate.getFullYear();
@@ -1092,16 +1212,11 @@ const THEME = {
     
     console.log('✅ Horários box encontrado, renderizando...');
     
-    // Horários de funcionamento: 7:30 às 18:00
+    // Horários de funcionamento: 7:00 às 17:00 (intervalos de 1 hora)
     const horarios = [];
-    for (let hora = 7; hora < 18; hora++) {
-      for (let minuto = 0; minuto < 60; minuto += 30) {
-        if (hora === 7 && minuto === 0) continue; // Pular 7:00
-        if (hora === 17 && minuto === 30) continue; // Pular 17:30
-        
-        const horario = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
-        horarios.push(horario);
-      }
+    for (let hora = 7; hora <= 17; hora++) {
+      const horario = `${hora.toString().padStart(2, '0')}:00`;
+      horarios.push(horario);
     }
     
     console.log('🕐 Horários gerados:', horarios);
@@ -1138,7 +1253,7 @@ const THEME = {
     `;
     
     horarios.forEach(horario => {
-      // Verificar se o horário está ocupado (incluindo 2 horas)
+      // Verificar se o horário está ocupado
       const isOcupado = isHorarioOcupado(horario, horariosOcupados);
       const isAvailable = !isOcupado;
       
@@ -1161,25 +1276,10 @@ const THEME = {
     console.log('🔍 Elementos encontrados:', horariosBox.querySelectorAll('.horario-item').length);
   }
   
-  // Verificar se um horário está ocupado (considerando 2 horas)
+  // Verificar se um horário está ocupado
   function isHorarioOcupado(horario, horariosOcupados) {
-    // Converter horário para minutos para facilitar comparação
-    const [hora, minuto] = horario.split(':').map(Number);
-    const horarioMinutos = hora * 60 + minuto;
-    
-    // Verificar se este horário ou os próximos 2 horários estão ocupados
-    for (let i = 0; i < 2; i++) {
-      const horarioVerificar = horarioMinutos + (i * 30);
-      const horaVerificar = Math.floor(horarioVerificar / 60);
-      const minutoVerificar = horarioVerificar % 60;
-      const horarioString = `${horaVerificar.toString().padStart(2, '0')}:${minutoVerificar.toString().padStart(2, '0')}`;
-      
-      if (horariosOcupados.includes(horarioString)) {
-        return true;
-      }
-    }
-    
-    return false;
+    // Para intervalos de 1 hora, apenas verificar se o horário exato está ocupado
+    return horariosOcupados.includes(horario);
   }
   
   // Selecionar horário
@@ -1211,21 +1311,213 @@ const THEME = {
     console.log('✅ Horário selecionado e salvo');
   }
   
+  // Calcular total do carrinho
+  function calculateTotal() {
+    return state.cart.reduce((total, item) => {
+      if (item.tipo === 'subscription') {
+        return total + item.preco;
+      }
+      return total + item.preco;
+    }, 0);
+  }
+  
+  // Função para validar se pode prosseguir para pagamento
+  function validarPagamento() {
+    const erros = [];
+    
+    // Verificar se há serviços no carrinho
+    if (!state.cart || state.cart.length === 0) {
+      erros.push('❌ Selecione pelo menos um serviço');
+    }
+    
+    // Verificar se há agendamento (obrigatório apenas para pagamento)
+    if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
+      erros.push('❌ Selecione uma data e horário para o agendamento');
+    }
+    
+    // Verificar se decidiu sobre busca e leva (obrigatório apenas para pagamento)
+    if (state.buscaLeva === undefined || state.buscaLeva === null) {
+      erros.push('❌ Decida se deseja o serviço de busca e leva');
+    }
+    
+    return {
+      valido: erros.length === 0,
+      erros: erros
+    };
+  }
+  
+  // Função para mostrar notificação de erro
+  function mostrarErroValidacao(erros) {
+    const mensagem = erros.join('\n');
+    
+    // Criar notificação de erro
+    const notificacao = document.createElement('div');
+    notificacao.id = 'erroValidacao';
+    notificacao.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #ff4444, #cc0000);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      z-index: 10000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      max-width: 90vw;
+      text-align: center;
+      white-space: pre-line;
+      animation: slideIn 0.3s ease-out;
+    `;
+    
+    notificacao.innerHTML = `
+      <div style="margin-bottom: 15px; font-size: 1.2rem;">⚠️ Validação Necessária</div>
+      <div style="margin-bottom: 20px;">${mensagem}</div>
+      <button onclick="this.parentElement.remove()" style="
+        background: white;
+        color: #cc0000;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      ">Entendi</button>
+    `;
+    
+    // Adicionar CSS para animação
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -60%);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Remover notificação anterior se existir
+    const notificacaoAnterior = document.getElementById('erroValidacao');
+    if (notificacaoAnterior) {
+      notificacaoAnterior.remove();
+    }
+    
+    document.body.appendChild(notificacao);
+    
+    // Remover automaticamente após 8 segundos
+    setTimeout(() => {
+      if (notificacao.parentElement) {
+        notificacao.remove();
+      }
+    }, 8000);
+  }
+  
   // Enviar pedido para WhatsApp
   function enviarPedidoWhatsApp() {
-    if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
-      toast('Selecione uma data e horário primeiro');
+    console.log('🔄 Iniciando envio do pedido...');
+    console.log('📅 Agendamento:', state.agendamento);
+    console.log('🛒 Carrinho:', state.cart);
+    
+    // Validações usando a nova função
+    const validacao = validarPagamento();
+    if (!validacao.valido) {
+      mostrarErroValidacao(validacao.erros);
       return;
     }
     
-    // ⚠️ IMPORTANTE: Mude este número antes de hospedar!
-    const numeroWhatsApp = '5535998538585'; // WhatsApp do Estúdio 23
+    // Validação adicional para dados do cliente
+    if (!state.client || !state.client.name || !state.client.phone) {
+      toast('Erro: Dados do cliente não encontrados');
+      return;
+    }
+    
+    // Número do WhatsApp do Estúdio 23
+    const numeroWhatsApp = '5535998538585';
     
     // Verificar se há assinatura no carrinho
     const subscriptionItem = state.cart.find(item => item.tipo === 'subscription');
     if (subscriptionItem) {
       activateSubscription(subscriptionItem.id);
     }
+    
+    // Calcular total
+    const total = calculateTotal();
+    const buscaLeva = state.buscaLeva ? 4.99 : 0;
+    const totalFinal = total + buscaLeva;
+    
+    // Criar objeto do agendamento para salvar no sistema
+    const agendamentoData = {
+      id: Date.now().toString(),
+      cliente: {
+        nome: state.client.name,
+        telefone: state.client.phone
+      },
+      data: state.agendamento.data,
+      horario: state.agendamento.horario,
+      servicos: state.cart.map(item => ({
+        nome: item.nome,
+        preco: item.preco,
+        pontos: item.pontos || 0,
+        tipo: item.tipo || 'servico'
+      })),
+      total: totalFinal,
+      buscaLeva: state.buscaLeva,
+      status: 'pending', // pending, confirmed, completed
+      dataCriacao: new Date().toISOString(),
+      pontosPendentes: state.cart.reduce((total, item) => total + (item.pontos || 0), 0)
+    };
+    
+    // Salvar agendamento no sistema admin
+    saveAgendamento(agendamentoData);
+    
+    // AGORA SIM: Bloquear horários após confirmação de pagamento
+    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
+    
+    // Determinar quantos horários bloquear baseado no tipo de serviço
+    let horariosParaBloquear = 1; // Por padrão, bloquear apenas 1 hora
+    
+    // Verificar se há serviços que precisam de 2 horas
+    const servicosComDuasHoras = ['lavagem_simples', 'lavagem_detalhada'];
+    const temServicoComDuasHoras = state.cart.some(item => 
+      servicosComDuasHoras.includes(item.id)
+    );
+    
+    if (temServicoComDuasHoras) {
+      horariosParaBloquear = 2; // Bloquear 2 horas para limpeza simples/detalhada
+    }
+    
+    // Adicionar agendamentos para os horários necessários
+    const horaInicial = parseInt(state.agendamento.horario.split(':')[0]);
+    for (let i = 0; i < horariosParaBloquear; i++) {
+      const horaAtual = horaInicial + i;
+      const horarioString = `${horaAtual.toString().padStart(2, '0')}:00`;
+      
+      // Verificar se não está duplicado e se está dentro do horário de funcionamento
+      const jaExiste = agendamentosGlobais.some(ag => 
+        ag.data === state.agendamento.data && ag.horario === horarioString
+      );
+      if (!jaExiste && horaAtual <= 17) {
+        agendamentosGlobais.push({
+          data: state.agendamento.data,
+          horario: horarioString,
+          cliente: state.client ? state.client.name : 'Cliente',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    localStorage.setItem('agendamentosGlobais', JSON.stringify(agendamentosGlobais));
+    console.log('🔒 Horários bloqueados após pagamento confirmado:', horariosParaBloquear);
+    
+    // Parar temporizador de reserva (pagamento confirmado)
+    pararTemporizadorReserva();
     
     // Construir mensagem do WhatsApp
     let mensagem = `*NOVO PEDIDO - ESTÚDIO 23* 🚗\n\n`;
@@ -1235,7 +1527,7 @@ const THEME = {
     mensagem += `*Horário:* ${state.agendamento.horario}\n\n`;
     
     if (state.buscaLeva) {
-      mensagem += `*Serviço:* Busca e Leva 🚚\n`;
+      mensagem += `*Serviço:* Busca e Leva 🚚 (+R$ 4,99)\n`;
     }
     
     mensagem += `*Serviços:*\n`;
@@ -1243,21 +1535,25 @@ const THEME = {
       if (item.tipo === 'subscription') {
         mensagem += `• ${item.nome} - Assinatura ${item.planDetails.benefits.lavagemSimples} lavagens + ${item.planDetails.benefits.desconto}% OFF\n`;
       } else {
-        mensagem += `• ${item.nome} - R$ ${money(item.preco)} ${item.benefitText}\n`;
+        mensagem += `• ${item.nome} - R$ ${money(item.preco)} ${item.benefitText || ''}\n`;
       }
     });
     
-    mensagem += `\n*Total:* R$ ${money(calculateTotal())}`;
-    
+    mensagem += `\n*Subtotal:* R$ ${money(total)}`;
     if (state.buscaLeva) {
-      mensagem += ` (incluindo busca e leva)`;
+      mensagem += `\n*Busca e Leva:* R$ 4,99`;
     }
-    
+    mensagem += `\n*Total:* R$ ${money(totalFinal)}`;
     mensagem += `\n\n*Pontos:* ${state.points} pts`;
+    mensagem += `\n\n*Status:* ✅ PAGAMENTO CONFIRMADO`;
+    
+    console.log('📱 Mensagem construída:', mensagem);
     
     // Codificar mensagem para URL
     const mensagemCodificada = encodeURIComponent(mensagem);
     const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensagemCodificada}`;
+    
+    console.log('🔗 URL WhatsApp:', urlWhatsApp);
     
     // Abrir WhatsApp
     window.open(urlWhatsApp, '_blank');
@@ -1299,13 +1595,15 @@ const THEME = {
     // Salvar dados
     autoSave();
     
-    toast('Pedido enviado para WhatsApp com sucesso!');
+    toast('✅ Pedido enviado para WhatsApp com sucesso!');
+    
+    // Voltar para seção de serviços
+    setTimeout(() => {
+      scrollToSection('sec-services');
+    }, 2000);
   }
   
-  /* ================ PAINEL ADMINISTRATIVO ================= */
-  
-  // Chave de acesso para o painel admin (só você saberá)
-  const ADMIN_ACCESS_KEY = 'erik_cunha_estudio23_2024_admin';
+
   
   // Verificar se é admin (você pode mudar esta lógica)
   function checkAdminAccess() {
@@ -1378,7 +1676,12 @@ const THEME = {
     event.target.classList.add('active');
     
     // Carregar dados específicos da aba
-    if (tabName === 'clients') {
+    if (tabName === 'dashboard') {
+      loadDashboardData();
+    } else if (tabName === 'agendamentos') {
+      renderAgendamentos();
+      renderAdminCalendar();
+    } else if (tabName === 'clients') {
       loadClientsData();
     } else if (tabName === 'services') {
       loadServicesData();
@@ -1390,6 +1693,8 @@ const THEME = {
   // Carregar dados gerais do painel
   function loadAdminData() {
     loadDashboardData();
+    renderAgendamentos();
+    renderAdminCalendar();
     loadClientsData();
     loadServicesData();
     loadFinanceData();
@@ -1398,8 +1703,8 @@ const THEME = {
   // Carregar dados do dashboard
   function loadDashboardData() {
     // Total de clientes
-    const totalClients = Object.keys(localStorage).filter(key => key.startsWith('client_')).length;
-    document.getElementById('totalClients').textContent = totalClients;
+    const clients = getAllClients();
+    document.getElementById('totalClients').textContent = clients.length;
     
     // Receita total
     const totalRevenue = calculateTotalRevenue();
@@ -1415,6 +1720,77 @@ const THEME = {
     
     // Atividades recentes
     loadRecentActivities();
+  }
+  
+  // Calcular receita total
+  function calculateTotalRevenue() {
+    const agendamentos = loadAgendamentos();
+    const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
+    return servicosCompletados.reduce((total, ag) => total + ag.total, 0);
+  }
+  
+  // Calcular total de serviços
+  function calculateTotalServices() {
+    const agendamentos = loadAgendamentos();
+    const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
+    return servicosCompletados.reduce((total, ag) => total + ag.servicos.length, 0);
+  }
+  
+  // Calcular assinaturas ativas
+  function calculateActiveSubscriptions() {
+    const clients = getAllClients();
+    let activeCount = 0;
+    
+    clients.forEach(client => {
+      if (client.subscription && client.subscription.active) {
+        const subscriptionEnd = new Date(client.subscription.endDate);
+        if (subscriptionEnd > new Date()) {
+          activeCount++;
+        }
+      }
+    });
+    
+    return activeCount;
+  }
+  
+  // Carregar atividades recentes
+  function loadRecentActivities() {
+    const agendamentos = loadAgendamentos();
+    const recentActivities = document.getElementById('recentActivities');
+    
+    if (!recentActivities) return;
+    
+    // Pegar os 5 agendamentos mais recentes
+    const recentes = agendamentos
+      .sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao))
+      .slice(0, 5);
+    
+    if (recentes.length === 0) {
+      recentActivities.innerHTML = '<div class="muted">Nenhuma atividade recente</div>';
+      return;
+    }
+    
+    recentActivities.innerHTML = recentes.map(ag => {
+      const dataFormatada = new Date(ag.dataCriacao).toLocaleDateString('pt-BR');
+      const statusText = {
+        'pending': 'Pendente',
+        'confirmed': 'Confirmado',
+        'completed': 'Concluído'
+      };
+      
+      return `
+        <div class="activity-item">
+          <div class="activity-header">
+            <span class="activity-client">${ag.cliente.nome}</span>
+            <span class="activity-status status-${ag.status}">${statusText[ag.status]}</span>
+          </div>
+          <div class="activity-details">
+            ${new Date(ag.data).toLocaleDateString('pt-BR')} às ${ag.horario} - R$ ${money(ag.total)}
+          </div>
+          <div class="activity-time">${dataFormatada}</div>
+        </div>
+      `;
+    }).join('');
   }
   
   // Carregar dados dos clientes
@@ -1482,11 +1858,11 @@ const THEME = {
     
     const serviceStats = calculateServiceStats();
     
-    Object.keys(serviceStats).forEach(serviceId => {
-      const stats = serviceStats[serviceId];
-      const service = SERVICES.find(s => s.id === serviceId);
+    Object.keys(serviceStats).forEach(serviceName => {
+      const stats = serviceStats[serviceName];
+      const service = SERVICES.find(s => s.nome === serviceName);
       
-      if (service && stats.count > 0) {
+      if (stats.count > 0) {
         const serviceCard = document.createElement('div');
         serviceCard.className = 'service-stat-card';
         
@@ -1495,7 +1871,7 @@ const THEME = {
         
         serviceCard.innerHTML = `
           <div class="service-stat-header">
-            <div class="service-stat-name">${service.nome}</div>
+            <div class="service-stat-name">${service ? service.nome : serviceName}</div>
             <div class="service-stat-count">${stats.count}</div>
           </div>
           <div class="service-stat-revenue">R$ ${money(stats.revenue)}</div>
@@ -1526,66 +1902,47 @@ const THEME = {
     loadRevenueChart();
   }
   
-  // Funções auxiliares para cálculos
-  function calculateTotalRevenue() {
-    // Implementar cálculo baseado no histórico
-    return 0; // Placeholder
-  }
-  
-  function calculateTotalServices() {
-    // Implementar cálculo baseado no histórico
-    return 0; // Placeholder
-  }
-  
-  function calculateActiveSubscriptions() {
-    // Implementar cálculo baseado nas assinaturas ativas
-    return 0; // Placeholder
-  }
-  
-  function loadRecentActivities() {
-    // Implementar carregamento de atividades recentes
-    const recentList = document.getElementById('recentActivities');
-    recentList.innerHTML = '<div style="color: #666; text-align: center;">Nenhuma atividade recente</div>';
-  }
-  
-  function getAllClients() {
-    // Implementar busca de todos os clientes
-    return []; // Placeholder
-  }
-  
-  function getLastServiceDate(phone) {
-    // Implementar busca da data do último serviço
-    return 'N/A'; // Placeholder
-  }
-  
-  function calculateClientTotal(phone) {
-    // Implementar cálculo do total gasto pelo cliente
-    return 0; // Placeholder
-  }
-  
-  function isClientActive(phone) {
-    // Implementar verificação se cliente está ativo
-    return false; // Placeholder
-  }
-  
-  function calculateServiceStats() {
-    // Implementar estatísticas dos serviços
-    return {}; // Placeholder
-  }
-  
   function calculateMonthlyRevenue() {
     // Implementar cálculo da receita mensal
-    return 0; // Placeholder
+    const agendamentos = loadAgendamentos();
+    const mesAtual = new Date().getMonth();
+    const anoAtual = new Date().getFullYear();
+    
+    const agendamentosMes = agendamentos.filter(ag => {
+      const dataAgendamento = new Date(ag.dataConclusao);
+      return ag.status === 'completed' && 
+             dataAgendamento.getMonth() === mesAtual && 
+             dataAgendamento.getFullYear() === anoAtual;
+    });
+    
+    return agendamentosMes.reduce((total, ag) => total + ag.total, 0);
   }
   
   function calculateYearlyRevenue() {
     // Implementar cálculo da receita anual
-    return 0; // Placeholder
+    const agendamentos = loadAgendamentos();
+    const anoAtual = new Date().getFullYear();
+    
+    const agendamentosAno = agendamentos.filter(ag => {
+      const dataAgendamento = new Date(ag.dataConclusao);
+      return ag.status === 'completed' && 
+             dataAgendamento.getFullYear() === anoAtual;
+    });
+    
+    return agendamentosAno.reduce((total, ag) => total + ag.total, 0);
   }
   
   function calculateAveragePerClient() {
     // Implementar cálculo da média por cliente
-    return 0; // Placeholder
+    const agendamentos = loadAgendamentos();
+    const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
+    
+    if (servicosCompletados.length === 0) return 0;
+    
+    const totalReceita = servicosCompletados.reduce((total, ag) => total + ag.total, 0);
+    const clientesUnicos = new Set(servicosCompletados.map(ag => ag.cliente.telefone));
+    
+    return totalReceita / clientesUnicos.size;
   }
   
   function loadRevenueChart() {
@@ -1639,47 +1996,851 @@ const THEME = {
   
   /* ================ FUNÇÕES DE PERSISTÊNCIA ================= */
   
+  // Buscar todos os clientes salvos
+  function getAllClients() {
+    try {
+      const clients = localStorage.getItem('clients');
+      return clients ? JSON.parse(clients) : [];
+    } catch (error) {
+      console.error('❌ Erro ao carregar clientes:', error);
+      return [];
+    }
+  }
+  
+  // Obter data do último serviço de um cliente
+  function getLastServiceDate(phone) {
+    const agendamentos = loadAgendamentos();
+    const clienteAgendamentos = agendamentos
+      .filter(ag => ag.cliente.telefone === phone && ag.status === 'completed')
+      .sort((a, b) => new Date(b.dataConclusao) - new Date(a.dataConclusao));
+    
+    if (clienteAgendamentos.length > 0) {
+      return new Date(clienteAgendamentos[0].dataConclusao).toLocaleDateString('pt-BR');
+    }
+    
+    return 'Nunca';
+  }
+  
+  // Calcular total gasto por um cliente
+  function calculateClientTotal(phone) {
+    const agendamentos = loadAgendamentos();
+    const clienteAgendamentos = agendamentos.filter(ag => 
+      ag.cliente.telefone === phone && ag.status === 'completed'
+    );
+    
+    return clienteAgendamentos.reduce((total, ag) => total + ag.total, 0);
+  }
+  
+  // Verificar se um cliente está ativo (serviço nos últimos 90 dias)
+  function isClientActive(phone) {
+    const agendamentos = loadAgendamentos();
+    const clienteAgendamentos = agendamentos.filter(ag => 
+      ag.cliente.telefone === phone && ag.status === 'completed'
+    );
+    
+    if (clienteAgendamentos.length === 0) return false;
+    
+    // Verificar se teve serviço nos últimos 90 dias
+    const ultimoServico = clienteAgendamentos
+      .sort((a, b) => new Date(b.dataConclusao) - new Date(a.dataConclusao))[0];
+    
+    const dataUltimoServico = new Date(ultimoServico.dataConclusao);
+    const dataLimite = new Date();
+    dataLimite.setDate(dataLimite.getDate() - 90);
+    
+    return dataUltimoServico >= dataLimite;
+  }
+  
+  // Calcular estatísticas dos serviços
+  function calculateServiceStats() {
+    const agendamentos = loadAgendamentos();
+    const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
+    
+    const stats = {};
+    
+    servicosCompletados.forEach(agendamento => {
+      agendamento.servicos.forEach(servico => {
+        const serviceName = servico.nome;
+        if (!stats[serviceName]) {
+          stats[serviceName] = {
+            count: 0,
+            revenue: 0
+          };
+        }
+        
+        stats[serviceName].count++;
+        stats[serviceName].revenue += servico.preco;
+      });
+    });
+    
+    return stats;
+  }
+  
   // Salvar dados do cliente atual
   function saveClientData() {
-    if (!state.client || !state.client.cid) return;
+    if (!state.client || !state.client.cid) {
+      console.log('❌ Cliente ou CID não encontrado para salvar dados');
+      return;
+    }
     
     const cid = state.client.cid;
+    console.log('💾 Salvando dados do cliente:', cid);
     
-    // Salvar dados principais
-    localStorage.setItem(`points_${cid}`, state.points.toString());
-    localStorage.setItem(`cart_${cid}`, JSON.stringify(state.cart));
-    localStorage.setItem(`agendamento_${cid}`, JSON.stringify(state.agendamento));
-    localStorage.setItem(`buscaLeva_${cid}`, JSON.stringify(state.buscaLeva));
-    localStorage.setItem(`subscription_${cid}`, JSON.stringify(state.subscription));
-    
+    try {
+      // Salvar dados principais
+      localStorage.setItem(`points_${cid}`, state.points.toString());
+      localStorage.setItem(`cart_${cid}`, JSON.stringify(state.cart));
+      localStorage.setItem(`agendamento_${cid}`, JSON.stringify(state.agendamento));
+      localStorage.setItem(`buscaLeva_${cid}`, JSON.stringify(state.buscaLeva));
+      localStorage.setItem(`subscription_${cid}`, JSON.stringify(state.subscription));
+      localStorage.setItem(`history_${cid}`, JSON.stringify(state.history));
+      
+      // Salvar cliente na lista de clientes
+      const clients = getAllClients();
+      const existingClientIndex = clients.findIndex(c => c.phone === state.client.phone);
+      
+      if (existingClientIndex !== -1) {
+        // Atualizar cliente existente
+        clients[existingClientIndex] = {
+          ...clients[existingClientIndex],
+          name: state.client.name,
+          phone: state.client.phone,
+          points: state.points,
+          lastService: new Date().toISOString(),
+          subscription: state.subscription
+        };
+      } else {
+        // Adicionar novo cliente
+        clients.push({
+          name: state.client.name,
+          phone: state.client.phone,
+          points: state.points,
+          lastService: new Date().toISOString(),
+          subscription: state.subscription
+        });
+      }
+      
+      localStorage.setItem('clients', JSON.stringify(clients));
+      
+      console.log('✅ Dados salvos com sucesso!');
+      console.log('📊 Resumo dos dados salvos:');
+      console.log('   - Pontos:', state.points);
+      console.log('   - Carrinho:', state.cart.length, 'itens');
+      console.log('   - Agendamento:', state.agendamento ? 'Sim' : 'Não');
+      console.log('   - Busca e Leva:', state.buscaLeva);
+      console.log('   - Assinatura:', state.subscription ? 'Sim' : 'Não');
+      console.log('   - Histórico:', state.history.length, 'itens');
+      
+    } catch (error) {
+      console.error('❌ Erro ao salvar dados do cliente:', error);
+    }
   }
   
   // Carregar dados do cliente atual
   function loadClientData() {
-    if (!state.client || !state.client.cid) return;
+    if (!state.client || !state.client.cid) {
+      console.log('❌ Cliente ou CID não encontrado para carregar dados');
+      return;
+    }
     
     const cid = state.client.cid;
+    console.log('📱 Carregando dados do cliente:', cid);
     
-    // Carregar dados salvos
-    const savedPoints = localStorage.getItem(`points_${cid}`);
-    if (savedPoints) state.points = parseInt(savedPoints);
-    
-    const savedCart = localStorage.getItem(`cart_${cid}`);
-    if (savedCart) state.cart = JSON.parse(savedCart);
-    
-    const savedAgendamento = localStorage.getItem(`agendamento_${cid}`);
-    if (savedAgendamento) state.agendamento = JSON.parse(savedAgendamento);
-    
-    const savedBuscaLeva = localStorage.getItem(`buscaLeva_${cid}`);
-    if (savedBuscaLeva) state.buscaLeva = JSON.parse(savedBuscaLeva);
-    
-    const savedSubscription = localStorage.getItem(`subscription_${cid}`);
-    if (savedSubscription) state.subscription = JSON.parse(savedSubscription);
-    
+    try {
+      // Carregar pontos
+      const savedPoints = localStorage.getItem(`points_${cid}`);
+      if (savedPoints) {
+        state.points = parseInt(savedPoints);
+        console.log('✅ Pontos carregados:', state.points);
+      } else {
+        state.points = 0;
+        console.log('📝 Pontos inicializados como 0');
+      }
+      
+      // Carregar carrinho
+      const savedCart = localStorage.getItem(`cart_${cid}`);
+      if (savedCart) {
+        state.cart = JSON.parse(savedCart);
+        console.log('✅ Carrinho carregado:', state.cart.length, 'itens');
+      } else {
+        state.cart = [];
+        console.log('📝 Carrinho inicializado como vazio');
+      }
+      
+      // Carregar agendamento
+      const savedAgendamento = localStorage.getItem(`agendamento_${cid}`);
+      if (savedAgendamento && savedAgendamento !== 'null') {
+        state.agendamento = JSON.parse(savedAgendamento);
+        console.log('✅ Agendamento carregado:', state.agendamento);
+      } else {
+        state.agendamento = null;
+        console.log('📝 Agendamento inicializado como null');
+      }
+      
+      // Carregar busca e leva
+      const savedBuscaLeva = localStorage.getItem(`buscaLeva_${cid}`);
+      if (savedBuscaLeva) {
+        state.buscaLeva = JSON.parse(savedBuscaLeva);
+        console.log('✅ Busca e leva carregado:', state.buscaLeva);
+      } else {
+        state.buscaLeva = false;
+        console.log('📝 Busca e leva inicializado como false');
+      }
+      
+      // Carregar assinatura
+      const savedSubscription = localStorage.getItem(`subscription_${cid}`);
+      if (savedSubscription && savedSubscription !== 'null') {
+        state.subscription = JSON.parse(savedSubscription);
+        console.log('✅ Assinatura carregada:', state.subscription);
+      } else {
+        state.subscription = null;
+        console.log('📝 Assinatura inicializada como null');
+      }
+      
+      // Carregar histórico
+      const savedHistory = localStorage.getItem(`history_${cid}`);
+      if (savedHistory) {
+        state.history = JSON.parse(savedHistory);
+        console.log('✅ Histórico carregado:', state.history.length, 'itens');
+      } else {
+        state.history = [];
+        console.log('📝 Histórico inicializado como vazio');
+      }
+      
+      console.log('✅ Todos os dados do cliente carregados com sucesso!');
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados do cliente:', error);
+      // Em caso de erro, inicializar com valores padrão
+      state.points = 0;
+      state.cart = [];
+      state.agendamento = null;
+      state.buscaLeva = false;
+      state.subscription = null;
+      state.history = [];
+    }
   }
   
   // Salvar dados automaticamente quando houver mudanças
   function autoSave() {
     saveClientData();
+  }
+  
+  // Função para renderizar status do agendamento
+  function renderAgendamentoStatus() {
+    const agendamentoDiv = document.getElementById('agendamentoEscolhido');
+    const btnOpenAgenda = document.getElementById('btnOpenAgendaModal');
+    
+    if (!agendamentoDiv || !btnOpenAgenda) return;
+    
+    if (state.agendamento && state.agendamento.data && state.agendamento.horario) {
+      // Agendamento selecionado
+      agendamentoDiv.innerHTML = `
+        <div style="background: rgba(40, 167, 69, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #28a745;">
+          <strong style="color: #28a745;">✓ Agendado para:</strong><br>
+          ${new Date(state.agendamento.data).toLocaleDateString('pt-BR')} às ${state.agendamento.horario}
+        </div>
+      `;
+      btnOpenAgenda.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+      btnOpenAgenda.textContent = 'Alterar agendamento';
+    } else {
+      // Nenhum agendamento selecionado
+      agendamentoDiv.innerHTML = `
+        <div style="background: rgba(255, 127, 0, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #ff7f00;">
+          <strong style="color: #ff7f00;">⚠️ Nenhum agendamento selecionado</strong><br>
+          <span style="color: #ff7f00; font-size: 0.9rem;">Selecione uma data e horário para continuar</span>
+        </div>
+      `;
+      btnOpenAgenda.style.background = 'linear-gradient(135deg, #ff7f00, #ff9500)';
+      btnOpenAgenda.textContent = 'Escolher dia e horário';
+    }
+  }
+  
+  // Função para limpar agendamento temporário
+  function limparAgendamentoTemporario() {
+    if (state.agendamento && (!state.cart || state.cart.length === 0)) {
+      console.log('🧹 Limpando agendamento temporário - carrinho vazio');
+      state.agendamento = null;
+      set('agendamento', null);
+      renderAgendamentoStatus();
+      
+      // Parar temporizador se estiver rodando
+      pararTemporizadorReserva();
+    }
+  }
+  
+  // Função para iniciar temporizador de reserva
+  function iniciarTemporizadorReserva() {
+    // Limpar temporizador anterior se existir
+    if (window.reservaTimer) {
+      clearInterval(window.reservaTimer);
+      clearTimeout(window.reservaTimeout);
+    }
+    
+    // Criar elemento do temporizador
+    let temporizadorDiv = document.getElementById('temporizadorReserva');
+    if (!temporizadorDiv) {
+      temporizadorDiv = document.createElement('div');
+      temporizadorDiv.id = 'temporizadorReserva';
+      temporizadorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff7f00, #ff9500);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        z-index: 10000;
+        box-shadow: 0 4px 20px rgba(255,127,0,0.4);
+        text-align: center;
+        animation: slideDown 0.3s ease-out;
+      `;
+      document.body.appendChild(temporizadorDiv);
+    }
+    
+    let minutosRestantes = 5;
+    let segundosRestantes = 0;
+    
+    const atualizarTemporizador = () => {
+      if (segundosRestantes > 0) {
+        segundosRestantes--;
+      } else {
+        if (minutosRestantes > 0) {
+          minutosRestantes--;
+          segundosRestantes = 59;
+        } else {
+          // Tempo esgotado - liberar reserva
+          clearInterval(window.reservaTimer);
+          clearTimeout(window.reservaTimeout);
+          
+          // Limpar agendamento temporário
+          state.agendamento = null;
+          set('agendamento', null);
+          
+          // Remover temporizador
+          if (temporizadorDiv.parentElement) {
+            temporizadorDiv.remove();
+          }
+          
+          // Atualizar interface
+          renderAgendamentoStatus();
+          
+          // Mostrar aviso
+          toast('⏰ Tempo esgotado! Reserva liberada. Selecione um novo horário.');
+          console.log('⏰ Reserva temporária expirada - horário liberado');
+          
+          return;
+        }
+      }
+      
+      // Atualizar display
+      const tempoFormatado = `${minutosRestantes}:${segundosRestantes.toString().padStart(2, '0')}`;
+      temporizadorDiv.innerHTML = `
+        <div style="margin-bottom: 8px;">⏰ RESERVA TEMPORÁRIA</div>
+        <div style="font-size: 1.2rem; font-weight: 700;">${tempoFormatado}</div>
+        <div style="font-size: 0.9rem; margin-top: 8px;">Complete o pagamento para confirmar</div>
+      `;
+    };
+    
+    // Iniciar contagem regressiva
+    atualizarTemporizador();
+    window.reservaTimer = setInterval(atualizarTemporizador, 1000);
+    
+    // Adicionar CSS para animação
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    console.log('⏰ Temporizador de reserva iniciado - 5 minutos');
+  }
+  
+  // Função para zerar todos os horários agendados
+  function zerarTodosHorarios() {
+    if (confirm('⚠️ ATENÇÃO: Isso irá remover TODOS os horários agendados do sistema!\n\nTem certeza que deseja continuar?')) {
+      // Limpar agendamentos globais
+      localStorage.removeItem('agendamentosGlobais');
+      
+      // Limpar agendamentos do admin
+      localStorage.removeItem('admin_agendamentos');
+      
+      // Limpar agendamentos temporários de todos os clientes
+      const clients = getAllClients();
+      clients.forEach(client => {
+        const cid = `client_${client.phone}`;
+        try {
+          const clientData = JSON.parse(localStorage.getItem(cid) || '{}');
+          if (clientData.agendamento) {
+            delete clientData.agendamento;
+            localStorage.setItem(cid, JSON.stringify(clientData));
+          }
+        } catch (e) {
+          console.log('Erro ao limpar agendamento do cliente:', client.phone);
+        }
+      });
+      
+      // Limpar agendamento atual se existir
+      if (state.agendamento) {
+        state.agendamento = null;
+        set('agendamento', null);
+        renderAgendamentoStatus();
+      }
+      
+      // Parar temporizador se estiver rodando
+      pararTemporizadorReserva();
+      
+      // Atualizar interface admin se estiver aberta
+      if (document.getElementById('adminCalendar')) {
+        renderAdminCalendar();
+      }
+      
+      toast('✅ Todos os horários foram zerados com sucesso!');
+      console.log('🧹 Todos os horários agendados foram zerados');
+    }
+  }
+  
+  // Função para parar temporizador de reserva (quando pagamento for confirmado)
+  function pararTemporizadorReserva() {
+    if (window.reservaTimer) {
+      clearInterval(window.reservaTimer);
+      clearTimeout(window.reservaTimeout);
+      window.reservaTimer = null;
+      
+      // Remover temporizador da tela
+      const temporizadorDiv = document.getElementById('temporizadorReserva');
+      if (temporizadorDiv && temporizadorDiv.parentElement) {
+        temporizadorDiv.remove();
+      }
+      
+      console.log('✅ Temporizador de reserva parado - pagamento confirmado');
+    }
+  }
+  
+  // Função para verificar status do login
+  function checkLoginStatus() {
+    const savedCid = localStorage.getItem('cid');
+    const loginScreen = document.getElementById('signup');
+    
+    if (savedCid && state.client) {
+      console.log('✅ Cliente logado:', state.client.name);
+      
+      // Adicionar indicador visual de login ativo
+      const loginIndicator = document.createElement('div');
+      loginIndicator.id = 'loginIndicator';
+      loginIndicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: linear-gradient(135deg, #4caf50, #45a049);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      `;
+      loginIndicator.innerHTML = `
+        <span>🟢</span>
+        <span>Logado como ${state.client.name}</span>
+      `;
+      
+      // Remover indicador anterior se existir
+      const existingIndicator = document.getElementById('loginIndicator');
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+      
+      document.body.appendChild(loginIndicator);
+      
+      // Remover indicador após 3 segundos
+      setTimeout(() => {
+        if (loginIndicator.parentElement) {
+          loginIndicator.style.opacity = '0';
+          loginIndicator.style.transform = 'translateY(-10px)';
+          setTimeout(() => {
+            if (loginIndicator.parentElement) {
+              loginIndicator.remove();
+            }
+          }, 300);
+        }
+      }, 3000);
+      
+    } else {
+      console.log('❌ Cliente não logado');
+      
+      // Remover indicador se existir
+      const existingIndicator = document.getElementById('loginIndicator');
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+    }
+  }
+  
+  /* ================ GERENCIAMENTO DE AGENDAMENTOS ================= */
+  
+  // Salvar agendamento no sistema
+  function saveAgendamento(agendamentoData) {
+    let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+    agendamentos.push(agendamentoData);
+    localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
+    console.log('✅ Agendamento salvo:', agendamentoData);
+  }
+  
+  // Carregar agendamentos do sistema
+  function loadAgendamentos() {
+    return JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+  }
+  
+  // Renderizar calendário visual para admin
+  function renderAdminCalendar() {
+    const calendarContainer = document.getElementById('adminCalendar');
+    if (!calendarContainer) return;
+    
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Nomes dos meses
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    
+    // Nomes dos dias da semana
+    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    
+    // Primeiro dia do mês
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    // Último dia do mês
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    
+    // Dia da semana do primeiro dia (0 = Domingo, 1 = Segunda, etc.)
+    const firstDayOfWeek = firstDay.getDay();
+    
+    // Número total de dias no mês
+    const totalDays = lastDay.getDate();
+    
+    // Buscar agendamentos para este mês
+    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
+    
+    let calendarHTML = `
+      <div class="admin-calendar-header">
+        <h3>${monthNames[currentMonth]} ${currentYear}</h3>
+        <div class="admin-calendar-legend">
+          <div class="legend-item">
+            <span class="legend-color available"></span>
+            <span>Livre</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color occupied"></span>
+            <span>Ocupado</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color weekend"></span>
+            <span>Fim de Semana</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-calendar-days">
+        ${dayNames.map(day => `<div class="admin-day-name">${day}</div>`).join('')}
+    `;
+    
+    // Adicionar espaços vazios para alinhar com os dias da semana
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      calendarHTML += '<div class="admin-day empty"></div>';
+    }
+    
+    // Adicionar os dias do mês
+    for (let day = 1; day <= totalDays; day++) {
+      const currentDate = new Date(currentYear, currentMonth, day);
+      const dayOfWeek = currentDate.getDay();
+      const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+      const isPast = currentDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Domingo ou Sábado
+      const isAvailable = !isPast && !isWeekend && dayOfWeek >= 1 && dayOfWeek <= 5; // Segunda a Sexta
+      
+      // Verificar se há agendamentos neste dia
+      const dataString = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      const agendamentosDoDia = agendamentosGlobais.filter(ag => ag.data === dataString);
+      const temAgendamentos = agendamentosDoDia.length > 0;
+      
+      let dayClass = 'admin-day';
+      if (isToday) dayClass += ' today';
+      if (isPast) dayClass += ' past';
+      if (isWeekend) dayClass += ' weekend';
+      if (isAvailable) dayClass += ' available';
+      if (temAgendamentos) dayClass += ' occupied';
+      
+      let dayContent = day.toString();
+      if (temAgendamentos) {
+        dayContent += `<div class="admin-day-indicator">${agendamentosDoDia.length}</div>`;
+      }
+      
+      calendarHTML += `
+        <div class="${dayClass}" title="${dataString}${temAgendamentos ? ` - ${agendamentosDoDia.length} agendamento(s)` : ''}">
+          ${dayContent}
+        </div>
+      `;
+    }
+    
+    calendarHTML += '</div>';
+    calendarContainer.innerHTML = calendarHTML;
+  }
+  
+  // Renderizar lista de agendamentos
+  function renderAgendamentos(filter = 'all') {
+    const agendamentos = loadAgendamentos();
+    const container = document.getElementById('agendamentosList');
+    
+    if (!container) return;
+    
+    // Filtrar agendamentos
+    let filteredAgendamentos = agendamentos;
+    if (filter !== 'all') {
+      filteredAgendamentos = agendamentos.filter(ag => ag.status === filter);
+    }
+    
+    // Ordenar por data de criação (mais recentes primeiro)
+    filteredAgendamentos.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+    
+    if (filteredAgendamentos.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--muted);">
+          <div style="font-size: 3rem; margin-bottom: 16px;">📅</div>
+          <h3>Nenhum agendamento encontrado</h3>
+          <p>Os agendamentos aparecerão aqui quando os clientes enviarem pedidos via WhatsApp.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = filteredAgendamentos.map(agendamento => {
+      const dataFormatada = new Date(agendamento.data).toLocaleDateString('pt-BR');
+      const statusText = {
+        'pending': 'Pendente',
+        'confirmed': 'Confirmado',
+        'completed': 'Concluído'
+      };
+      
+      const servicosHTML = agendamento.servicos.map(servico => `
+        <div class="servico-item">
+          <span class="servico-nome">${servico.nome}</span>
+          <span class="servico-pontos">${servico.pontos} pts</span>
+        </div>
+      `).join('');
+      
+      const totalServicos = agendamento.servicos.reduce((total, servico) => total + servico.preco, 0);
+      
+      return `
+        <div class="agendamento-card">
+          <div class="agendamento-header">
+            <div class="agendamento-info">
+              <div class="agendamento-cliente">${agendamento.cliente.nome}</div>
+              <div class="agendamento-contato">${agendamento.cliente.telefone}</div>
+              <div class="agendamento-data">${dataFormatada} às ${agendamento.horario}</div>
+            </div>
+            <div class="agendamento-status status-${agendamento.status}">
+              ${statusText[agendamento.status]}
+            </div>
+          </div>
+          
+          <div class="agendamento-servicos">
+            ${servicosHTML}
+          </div>
+          
+          <div class="agendamento-total">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span>R$ ${money(totalServicos)}</span>
+            </div>
+            ${agendamento.buscaLeva ? `
+            <div class="total-row">
+              <span>Busca e Leva:</span>
+              <span>R$ 4,99</span>
+            </div>
+            ` : ''}
+            <div class="total-row">
+              <span>Total:</span>
+              <span>R$ ${money(agendamento.total)}</span>
+            </div>
+            <div class="total-row">
+              <span>Pontos Pendentes:</span>
+              <span>${agendamento.pontosPendentes} pts</span>
+            </div>
+          </div>
+          
+          <div class="agendamento-actions">
+            ${agendamento.status === 'pending' ? `
+              <button class="btn-confirm" onclick="confirmarAgendamento('${agendamento.id}')">
+                ✅ Confirmar e Adicionar Pontos
+              </button>
+            ` : ''}
+            ${agendamento.status === 'confirmed' ? `
+              <button class="btn-complete" onclick="completarAgendamento('${agendamento.id}')">
+                🎯 Marcar como Concluído
+              </button>
+            ` : ''}
+            ${agendamento.status === 'completed' ? `
+              <div style="color: var(--brand); font-weight: 600; padding: 8px; background: rgba(255,127,0,0.1); border-radius: 6px; text-align: center;">
+                ✅ Serviço Concluído
+              </div>
+            ` : ''}
+            <button class="btn-remove" onclick="removerAgendamento('${agendamento.id}', '${agendamento.data}', '${agendamento.horario}')" style="
+              background: linear-gradient(135deg, #dc3545, #c82333);
+              color: white;
+              border: none;
+              padding: 8px 16px;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              cursor: pointer;
+              margin-top: 8px;
+              width: 100%;
+              transition: all 0.3s ease;
+            ">
+              🗑️ Remover Agendamento
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Atualizar estatísticas
+    updateAgendamentosStats();
+  }
+  
+  // Confirmar agendamento e adicionar pontos
+  function confirmarAgendamento(agendamentoId) {
+    const agendamentos = loadAgendamentos();
+    const agendamento = agendamentos.find(ag => ag.id === agendamentoId);
+    
+    if (!agendamento) {
+      toast('❌ Agendamento não encontrado');
+      return;
+    }
+    
+    // Atualizar status
+    agendamento.status = 'confirmed';
+    agendamento.dataConfirmacao = new Date().toISOString();
+    
+    // Adicionar pontos ao cliente
+    const pontosParaAdicionar = agendamento.pontosPendentes;
+    
+    // Buscar cliente no localStorage
+    const clientes = getAllClients();
+    const cliente = clientes.find(c => c.phone === agendamento.cliente.telefone);
+    
+    if (cliente) {
+      // Atualizar pontos do cliente
+      cliente.points = (cliente.points || 0) + pontosParaAdicionar;
+      cliente.lastService = new Date().toISOString();
+      
+      // Salvar cliente atualizado
+      const clientesAtualizados = clientes.map(c => 
+        c.phone === agendamento.cliente.telefone ? cliente : c
+      );
+      localStorage.setItem('clients', JSON.stringify(clientesAtualizados));
+      
+      // Salvar agendamento atualizado
+      const agendamentosAtualizados = agendamentos.map(ag => 
+        ag.id === agendamentoId ? agendamento : ag
+      );
+      localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosAtualizados));
+      
+      toast(`✅ Agendamento confirmado! ${pontosParaAdicionar} pontos adicionados ao cliente ${agendamento.cliente.nome}`);
+      
+      // Atualizar interface
+      renderAgendamentos();
+      loadAdminData(); // Recarregar dados do admin
+    } else {
+      toast('❌ Cliente não encontrado no sistema');
+    }
+  }
+  
+  // Remover agendamento
+  function removerAgendamento(agendamentoId, data, horario) {
+    if (!confirm(`Tem certeza que deseja remover o agendamento de ${data} às ${horario}?`)) {
+      return;
+    }
+    
+    // Remover do localStorage de agendamentos
+    const agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+    const agendamentosFiltrados = agendamentos.filter(ag => ag.id !== agendamentoId);
+    localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosFiltrados));
+    
+    // Remover dos horários globais ocupados
+    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
+    const globaisFiltrados = agendamentosGlobais.filter(ag => 
+      !(ag.data === data && ag.horario === horario)
+    );
+    localStorage.setItem('agendamentosGlobais', JSON.stringify(globaisFiltrados));
+    
+    // Atualizar interface
+    renderAgendamentos();
+    renderAdminCalendar();
+    
+    toast(`Agendamento removido com sucesso! Horário ${horario} do dia ${data} está livre novamente.`);
+    console.log('🗑️ Agendamento removido:', agendamentoId);
+  }
+  
+  // Completar agendamento
+  function completarAgendamento(agendamentoId) {
+    const agendamentos = loadAgendamentos();
+    const agendamento = agendamentos.find(ag => ag.id === agendamentoId);
+    
+    if (!agendamento) {
+      toast('❌ Agendamento não encontrado');
+      return;
+    }
+    
+    // Atualizar status
+    agendamento.status = 'completed';
+    agendamento.dataConclusao = new Date().toISOString();
+    
+    // Salvar agendamento atualizado
+    const agendamentosAtualizados = agendamentos.map(ag => 
+      ag.id === agendamentoId ? agendamento : ag
+    );
+    localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosAtualizados));
+    
+    toast(`🎯 Agendamento marcado como concluído!`);
+    
+    // Atualizar interface
+    renderAgendamentos();
+  }
+  
+  // Filtrar agendamentos
+  function filterAgendamentos() {
+    const filter = document.getElementById('statusFilter').value;
+    renderAgendamentos(filter);
+  }
+  
+  // Atualizar estatísticas dos agendamentos
+  function updateAgendamentosStats() {
+    const agendamentos = loadAgendamentos();
+    
+    const pendingCount = agendamentos.filter(ag => ag.status === 'pending').length;
+    const confirmedCount = agendamentos.filter(ag => ag.status === 'confirmed').length;
+    const completedCount = agendamentos.filter(ag => ag.status === 'completed').length;
+    
+    document.getElementById('pendingCount').textContent = pendingCount;
+    document.getElementById('confirmedCount').textContent = confirmedCount;
+    document.getElementById('completedCount').textContent = completedCount;
   }
   

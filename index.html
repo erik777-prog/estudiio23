@@ -65,11 +65,19 @@
 
   <!-- Status da Assinatura -->
   <div class="subscription-status-top" id="subscriptionStatusTop">
-    <div class="status-info">
-      <h4>Status da Assinatura</h4>
-      <div class="status-details">
-        <span class="status-badge" id="statusBadgeTop">Sem assinatura</span>
-        <div class="status-text" id="statusTextTop">Você ainda não possui uma assinatura ativa</div>
+    <div class="subscription-container">
+      <div class="subscription-icon">
+        <span id="subscriptionIconTop">⭐</span>
+      </div>
+      <div class="status-info">
+        <div class="status-header">
+          <h4>Status da Assinatura</h4>
+          <span class="status-action" id="statusActionTop" onclick="scrollToSection('sec-subscription')">Ver Planos</span>
+        </div>
+        <div class="status-details">
+          <span class="status-badge" id="statusBadgeTop">Sem assinatura</span>
+          <div class="status-text" id="statusTextTop">Você ainda não possui uma assinatura ativa</div>
+        </div>
       </div>
     </div>
   </div>
@@ -101,13 +109,16 @@
     </section>
 
     <section id="sec-cart" class="card">
-      <h3>Carrinho</h3>
-      <div id="cartList" style="margin-bottom:12px"></div>
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <div class="kpi">Total: R$ <span id="cartTotal">0,00</span></div>
-        <div>
-          <button class="btn ghost" id="btnClearCart">Limpar</button>
-        </div>
+      <div class="cart-header">
+        <h3>🛒 Meu Carrinho</h3>
+        <button class="btn-clear-cart hidden" id="btnClearCart">Limpar</button>
+      </div>
+      
+      <div id="cartList" class="cart-list"></div>
+      
+      <div class="cart-total-simple">
+        <span class="total-label">Total a Pagar</span>
+        <span class="total-value">R$ <span id="cartTotal">0,00</span></span>
       </div>
     </section>
 
@@ -200,7 +211,7 @@
   </main>
 
   <!-- Voltar ao topo -->
-  <button id="btnTop" class="backtop hidden">Voltar ao topo</button>
+
 
   <!-- Toast simples -->
   <div id="toast" class="toast"></div>
@@ -250,6 +261,7 @@
       
       <div class="admin-tabs">
         <button class="admin-tab active" onclick="showAdminTab('dashboard')">Dashboard</button>
+        <button class="admin-tab" onclick="showAdminTab('agendamentos')">Agendamentos</button>
         <button class="admin-tab" onclick="showAdminTab('clients')">Clientes</button>
         <button class="admin-tab" onclick="showAdminTab('services')">Serviços</button>
         <button class="admin-tab" onclick="showAdminTab('finance')">Financeiro</button>
@@ -283,6 +295,63 @@
         <div class="admin-recent">
           <h3>Atividades Recentes</h3>
           <div id="recentActivities" class="recent-list"></div>
+        </div>
+      </div>
+      
+      <!-- Agendamentos -->
+      <div id="adminAgendamentos" class="admin-tab-content">
+        <div class="agendamentos-header">
+          <h3>📅 Agendamentos Pendentes</h3>
+          <div class="agendamentos-filters">
+            <select id="statusFilter" onchange="filterAgendamentos()">
+              <option value="all">Todos os status</option>
+              <option value="pending">Pendentes</option>
+              <option value="confirmed">Confirmados</option>
+              <option value="completed">Concluídos</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Calendário Visual -->
+        <div class="admin-calendar-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h4>📅 Calendário de Ocupação</h4>
+            <button onclick="zerarTodosHorarios()" style="
+              background: linear-gradient(135deg, #dc3545, #c82333);
+              color: white;
+              border: none;
+              padding: 8px 16px;
+              border-radius: 8px;
+              font-size: 0.9rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            ">
+              🗑️ Zerar Todos os Horários
+            </button>
+          </div>
+          <div id="adminCalendar" class="admin-calendar">
+            <!-- Calendário será renderizado aqui -->
+          </div>
+        </div>
+        
+        <div class="agendamentos-list" id="agendamentosList">
+          <!-- Lista de agendamentos será carregada aqui -->
+        </div>
+        
+        <div class="agendamentos-stats">
+          <div class="stat-mini">
+            <span class="stat-number" id="pendingCount">0</span>
+            <span class="stat-label">Pendentes</span>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-number" id="confirmedCount">0</span>
+            <span class="stat-label">Confirmados</span>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-number" id="completedCount">0</span>
+            <span class="stat-label">Concluídos</span>
+          </div>
         </div>
       </div>
       
