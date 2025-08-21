@@ -3,7 +3,7 @@ const THEME = {
     POINTS_TARGET: 20000,
     REDEEM_ZERO_ALL: false
   };
-
+  
 // Chave de acesso para o painel admin (só você saberá)
 const ADMIN_ACCESS_KEY = 'erik_cunha_estudio23_2024_admin';
 
@@ -78,8 +78,477 @@ const SUBSCRIPTION_PLANS = {
   const $$ = sel => document.querySelectorAll(sel);
   const money = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const toast = msg => { const t = $('#toast'); t.textContent = msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); };
-  function set(k,v){ localStorage.setItem(KEY(k), JSON.stringify(v)); if(k==='points'){ localStorage.setItem(KEY('points'), v); } }
-  function get(k){ try{ return JSON.parse(localStorage.getItem(KEY(k))); }catch{ return null; } }
+  // Funções de persistência com Firebase (fallback para localStorage)
+  async function set(k,v){ 
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, setDoc } = window.firebaseServices;
+        const userDoc = doc(window.firebaseDB, 'users', getUserId());
+        await setDoc(userDoc, { [k]: v }, { merge: true });
+        console.log(`💾 Dados salvos no Firebase: ${k}`);
+      }
+      // Sempre salvar no localStorage como backup
+      localStorage.setItem(KEY(k), JSON.stringify(v)); 
+      if(k==='points'){ localStorage.setItem(KEY('points'), v); }
+    } catch (error) {
+      console.error(`❌ Erro ao salvar no Firebase, usando localStorage: ${k}`, error);
+      localStorage.setItem(KEY(k), JSON.stringify(v)); 
+      if(k==='points'){ localStorage.setItem(KEY('points'), v); }
+    }
+  }
+  
+  async function get(k){ 
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, getDoc } = window.firebaseServices;
+        const userDoc = doc(window.firebaseDB, 'users', getUserId());
+        const docSnap = await getDoc(userDoc);
+        
+        if (docSnap.exists() && docSnap.data()[k] !== undefined) {
+          console.log(`📖 Dados lidos do Firebase: ${k}`);
+          return docSnap.data()[k];
+        }
+      }
+      // Fallback para localStorage
+      return JSON.parse(localStorage.getItem(KEY(k)));
+    } catch (error) {
+      console.error(`❌ Erro ao ler do Firebase, usando localStorage: ${k}`, error);
+      return JSON.parse(localStorage.getItem(KEY(k)));
+    }
+  }
+  
+  // Função para obter ID único do usuário
+  function getUserId() {
+    let userId = localStorage.getItem('userId');
+    if (!userId) {
+      userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('userId', userId);
+    }
+    return userId;
+  }
+  
+  // Função para inicializar Firebase
+  async function initializeFirebase() {
+    try {
+      console.log('🔥 Aguardando Firebase estar disponível...');
+      
+      // Aguardar Firebase estar disponível
+      let attempts = 0;
+      while (!window.firebaseDB && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (!window.firebaseDB) {
+        throw new Error('Firebase não disponível após 5 segundos');
+      }
+      
+      console.log('✅ Firebase disponível, fazendo login anônimo...');
+      
+      // Fazer login anônimo
+      await window.firebaseAuth.signInAnonymously();
+      console.log('✅ Firebase inicializado com sucesso!');
+      
+      // Configurar listeners em tempo real
+      setupRealtimeListeners();
+      
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Erro ao inicializar Firebase:', error);
+      console.log('⚠️ Continuando com localStorage como fallback');
+      return false;
+    }
+  }
+  
+  // Função para configurar listeners em tempo real
+  function setupRealtimeListeners() {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { collection, onSnapshot, query, orderBy } = window.firebaseServices;
+        
+        // Listener para agendamentos
+        const agendamentosRef = collection(window.firebaseDB, 'agendamentos');
+        const qAgendamentos = query(agendamentosRef, orderBy('timestamp', 'desc'));
+        
+        onSnapshot(qAgendamentos, (snapshot) => {
+          console.log('🔄 Agendamentos atualizados em tempo real!');
+          console.log('📊 Total de agendamentos:', snapshot.size);
+          
+          // Atualizar localStorage com novos dados
+          const agendamentos = [];
+          snapshot.forEach((doc) => {
+            agendamentos.push({ id: doc.id, ...doc.data() });
+          });
+          localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
+          
+          // Atualizar interface admin se estiver aberta
+          if (document.getElementById('adminModal') && !document.getElementById('adminModal').classList.contains('hidden')) {
+            loadAdminData();
+          }
+          
+          // Atualizar calendário de agendamentos se estiver aberto
+          if (document.getElementById('agendaModal') && !document.getElementById('agendaModal').classList.contains('hidden')) {
+            renderAgendaCalendar();
+          }
+        });
+        
+        // Listener para clientes
+        const clientsRef = collection(window.firebaseDB, 'clients');
+        onSnapshot(clientsRef, (snapshot) => {
+          console.log('🔄 Clientes atualizados em tempo real!');
+          console.log('👥 Total de clientes:', snapshot.size);
+          
+          // Atualizar localStorage com novos dados
+          const clients = [];
+          snapshot.forEach((doc) => {
+            clients.push({ id: doc.id, ...doc.data() });
+          });
+          localStorage.setItem('clients', JSON.stringify(clients));
+          
+          // Atualizar interface admin se estiver aberta
+          if (document.getElementById('adminModal') && !document.getElementById('adminModal').classList.contains('hidden')) {
+            loadClientsData();
+          }
+        });
+        
+        // Listener para configurações admin
+        const adminRef = collection(window.firebaseDB, 'admin');
+        onSnapshot(adminRef, (snapshot) => {
+          console.log('🔄 Configurações admin atualizadas em tempo real!');
+          
+          snapshot.forEach((doc) => {
+            if (doc.id === 'config') {
+              const adminConfig = doc.data();
+              if (adminConfig.admin_key) {
+                localStorage.setItem('admin_key', adminConfig.admin_key);
+                console.log('🔑 Admin key atualizada');
+              }
+            }
+          });
+        });
+        
+        console.log('✅ Listeners em tempo real configurados para:');
+        console.log('  - 📅 Agendamentos');
+        console.log('  - 👥 Clientes');
+        console.log('  - 🔑 Configurações Admin');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao configurar listeners em tempo real:', error);
+    }
+  }
+  
+  // ================ FUNÇÕES DE CLIENTES NO FIREBASE =================
+  
+  // Salvar cliente no Firebase
+  async function saveClientToFirebase(clientData) {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, setDoc } = window.firebaseServices;
+        const clientDoc = doc(window.firebaseDB, 'clients', clientData.cid);
+        await setDoc(clientDoc, {
+          ...clientData,
+          lastUpdate: new Date().toISOString()
+        }, { merge: true });
+        console.log('✅ Cliente salvo no Firebase:', clientData.name);
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar cliente no Firebase:', error);
+    }
+    return false;
+  }
+  
+  // Carregar cliente do Firebase
+  async function loadClientFromFirebase(cid) {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, getDoc } = window.firebaseServices;
+        const clientDoc = doc(window.firebaseDB, 'clients', cid);
+        const docSnap = await getDoc(clientDoc);
+        
+        if (docSnap.exists()) {
+          console.log('📖 Cliente carregado do Firebase:', docSnap.data().name);
+          return docSnap.data();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar cliente do Firebase:', error);
+    }
+    return null;
+  }
+  
+  // Carregar todos os clientes do Firebase
+  async function loadAllClientsFromFirebase() {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { collection, getDocs } = window.firebaseServices;
+        const clientsRef = collection(window.firebaseDB, 'clients');
+        const querySnapshot = await getDocs(clientsRef);
+        
+        const clients = [];
+        querySnapshot.forEach((doc) => {
+          clients.push({ id: doc.id, ...doc.data() });
+        });
+        
+        console.log('✅ Todos os clientes carregados do Firebase:', clients.length);
+        
+        // Atualizar localStorage como backup
+        localStorage.setItem('clients', JSON.stringify(clients));
+        
+        return clients;
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar clientes do Firebase:', error);
+    }
+    
+    // Fallback para localStorage
+    return JSON.parse(localStorage.getItem('clients') || '[]');
+  }
+  
+  // Salvar dados do usuário atual no Firebase
+  async function saveUserDataToFirebase(userId, userData) {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, setDoc } = window.firebaseServices;
+        const userDoc = doc(window.firebaseDB, 'users', userId);
+        await setDoc(userDoc, {
+          ...userData,
+          lastUpdate: new Date().toISOString()
+        }, { merge: true });
+        console.log('✅ Dados do usuário salvos no Firebase');
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar dados do usuário no Firebase:', error);
+    }
+    return false;
+  }
+  
+  // Carregar dados do usuário atual do Firebase
+  async function loadUserDataFromFirebase(userId) {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, getDoc } = window.firebaseServices;
+        const userDoc = doc(window.firebaseDB, 'users', userId);
+        const docSnap = await getDoc(userDoc);
+        
+        if (docSnap.exists()) {
+          console.log('📖 Dados do usuário carregados do Firebase');
+          return docSnap.data();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados do usuário do Firebase:', error);
+    }
+    return null;
+  }
+  
+  // ================ FUNÇÕES ADMINISTRATIVAS NO FIREBASE =================
+  
+  // Salvar configurações administrativas no Firebase
+  async function saveAdminConfigToFirebase(configData) {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, setDoc } = window.firebaseServices;
+        const adminDoc = doc(window.firebaseDB, 'admin', 'config');
+        await setDoc(adminDoc, {
+          ...configData,
+          lastUpdate: new Date().toISOString()
+        }, { merge: true });
+        console.log('✅ Configurações admin salvas no Firebase');
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar configurações admin no Firebase:', error);
+    }
+    return false;
+  }
+  
+  // Carregar configurações administrativas do Firebase
+  async function loadAdminConfigFromFirebase() {
+    try {
+      if (window.firebaseDB && window.firebaseServices) {
+        const { doc, getDoc } = window.firebaseServices;
+        const adminDoc = doc(window.firebaseDB, 'admin', 'config');
+        const docSnap = await getDoc(adminDoc);
+        
+        if (docSnap.exists()) {
+          console.log('📖 Configurações admin carregadas do Firebase');
+          return docSnap.data();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar configurações admin do Firebase:', error);
+    }
+    return null;
+  }
+  
+  // Verificar se usuário é admin (salvo no Firebase)
+  async function verifyAdminAccess(key) {
+    try {
+      const adminConfig = await loadAdminConfigFromFirebase();
+      
+      if (adminConfig && adminConfig.admin_key === key) {
+        console.log('✅ Acesso admin verificado via Firebase');
+        return true;
+      }
+      
+      // Fallback para localStorage
+      const localKey = localStorage.getItem('admin_key');
+      if (localKey === key) {
+        console.log('✅ Acesso admin verificado via localStorage (fallback)');
+        // Salvar no Firebase para próximas vezes
+        await saveAdminConfigToFirebase({ admin_key: key });
+        return true;
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro ao verificar acesso admin:', error);
+    }
+    
+    return false;
+  }
+  
+  // ================ FUNÇÕES DE SINCRONIZAÇÃO E BACKUP =================
+  
+  // Migrar dados do localStorage para Firebase
+  async function migrateLocalStorageToFirebase() {
+    try {
+      console.log('🔄 Iniciando migração do localStorage para Firebase...');
+      
+      // Migrar clientes
+      const localClients = JSON.parse(localStorage.getItem('clients') || '[]');
+      for (const client of localClients) {
+        if (client.cid) {
+          await saveClientToFirebase(client);
+        }
+      }
+      console.log(`✅ ${localClients.length} clientes migrados`);
+      
+      // Migrar agendamentos
+      const localAgendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+      for (const agendamento of localAgendamentos) {
+        await saveAgendamento(agendamento);
+      }
+      console.log(`✅ ${localAgendamentos.length} agendamentos migrados`);
+      
+      // Migrar configurações admin
+      const adminKey = localStorage.getItem('admin_key');
+      if (adminKey) {
+        await saveAdminConfigToFirebase({ admin_key: adminKey });
+        console.log('✅ Configurações admin migradas');
+      }
+      
+      console.log('🎉 Migração completa!');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Erro durante migração:', error);
+      return false;
+    }
+  }
+  
+  // Sincronizar dados entre Firebase e localStorage
+  async function syncFirebaseToLocalStorage() {
+    try {
+      console.log('🔄 Sincronizando Firebase → localStorage...');
+      
+      // Sincronizar clientes
+      const firebaseClients = await loadAllClientsFromFirebase();
+      if (firebaseClients.length > 0) {
+        localStorage.setItem('clients', JSON.stringify(firebaseClients));
+        console.log(`✅ ${firebaseClients.length} clientes sincronizados`);
+      }
+      
+      // Sincronizar agendamentos
+      const firebaseAgendamentos = await loadAgendamentos();
+      if (firebaseAgendamentos.length > 0) {
+        localStorage.setItem('admin_agendamentos', JSON.stringify(firebaseAgendamentos));
+        console.log(`✅ ${firebaseAgendamentos.length} agendamentos sincronizados`);
+      }
+      
+      // Sincronizar configurações admin
+      const adminConfig = await loadAdminConfigFromFirebase();
+      if (adminConfig && adminConfig.admin_key) {
+        localStorage.setItem('admin_key', adminConfig.admin_key);
+        console.log('✅ Configurações admin sincronizadas');
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Erro durante sincronização:', error);
+      return false;
+    }
+  }
+  
+  // Backup completo dos dados
+  async function createFullBackup() {
+    try {
+      console.log('💾 Criando backup completo...');
+      
+      const backup = {
+        timestamp: new Date().toISOString(),
+        clients: await loadAllClientsFromFirebase(),
+        agendamentos: await loadAgendamentos(),
+        adminConfig: await loadAdminConfigFromFirebase(),
+        version: '1.0'
+      };
+      
+      // Salvar backup no localStorage
+      localStorage.setItem('firebase_backup', JSON.stringify(backup));
+      
+      console.log('✅ Backup criado com sucesso');
+      console.log('📊 Backup contém:', {
+        clientes: backup.clients.length,
+        agendamentos: backup.agendamentos.length,
+        temAdminConfig: !!backup.adminConfig
+      });
+      
+      return backup;
+      
+    } catch (error) {
+      console.error('❌ Erro ao criar backup:', error);
+      return null;
+    }
+  }
+  
+  // Restaurar backup
+  async function restoreFromBackup() {
+    try {
+      const backupData = localStorage.getItem('firebase_backup');
+      if (!backupData) {
+        console.log('❌ Nenhum backup encontrado');
+        return false;
+      }
+      
+      const backup = JSON.parse(backupData);
+      console.log('🔄 Restaurando backup de:', backup.timestamp);
+      
+      // Restaurar clientes
+      for (const client of backup.clients) {
+        await saveClientToFirebase(client);
+      }
+      
+      // Restaurar agendamentos
+      for (const agendamento of backup.agendamentos) {
+        await saveAgendamento(agendamento);
+      }
+      
+      // Restaurar configurações admin
+      if (backup.adminConfig) {
+        await saveAdminConfigToFirebase(backup.adminConfig);
+      }
+      
+      console.log('✅ Backup restaurado com sucesso');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Erro ao restaurar backup:', error);
+      return false;
+    }
+  }
   const maskPhone = p => !p ? '' : '('+p.slice(0,2)+') '+p.slice(2,7)+'-'+p.slice(7,11);
   
   /* ================ FUNÇÕES DE NAVEGAÇÃO DO CALENDÁRIO ================ */
@@ -112,14 +581,14 @@ const SUBSCRIPTION_PLANS = {
       setTimeout(()=>splash.style.display='none', 380);
       
       // Sempre chamar bootApp para verificar se há cliente salvo
-      bootApp();
+        bootApp();
       
 
     }, 1600);
   });
   
   /* ================ SIGNUP ================== */
-  $('#btnSaveSignup').addEventListener('click', ()=>{
+  $('#btnSaveSignup').addEventListener('click', async ()=>{
     const name = $('#name').value.trim();
     const phone = $('#phone').value.trim();
     
@@ -168,6 +637,11 @@ const SUBSCRIPTION_PLANS = {
     
     // Salvar/atualizar dados do cliente
     const client = { name, phone, cid };
+    
+    // Salvar no Firebase
+    await saveClientToFirebase(client);
+    
+    // Salvar localmente como backup
     localStorage.setItem(cid, JSON.stringify(client));
     localStorage.setItem('cid', cid);
     
@@ -211,8 +685,28 @@ const SUBSCRIPTION_PLANS = {
   });
   
   /* ================ APP BOOT ================= */
-  function bootApp(){
+  async function bootApp(){
     console.log('🚀 Iniciando aplicação...');
+    
+    // Inicializar Firebase
+    try {
+      console.log('🔥 Inicializando Firebase...');
+      await initializeFirebase();
+      
+      // Executar migração se necessário
+      const hasBeenMigrated = localStorage.getItem('firebase_migrated');
+      if (!hasBeenMigrated) {
+        console.log('🔄 Primeira execução com Firebase, executando migração...');
+        await migrateLocalStorageToFirebase();
+        localStorage.setItem('firebase_migrated', 'true');
+      }
+      
+      // Sincronizar dados
+      await syncFirebaseToLocalStorage();
+      
+    } catch (error) {
+      console.error('❌ Erro ao inicializar Firebase:', error);
+    }
     
     // Verificar se já existe um cliente logado
     const savedCid = localStorage.getItem('cid');
@@ -228,7 +722,7 @@ const SUBSCRIPTION_PLANS = {
           console.log('✅ Cliente carregado:', state.client);
           
           // Carregar todos os dados salvos do cliente
-          loadClientData();
+          await loadClientData();
           
           // Ocultar tela de login
           const loginScreen = document.getElementById('signup');
@@ -239,6 +733,9 @@ const SUBSCRIPTION_PLANS = {
           
           // Atualizar interface
           updateAllUI();
+          
+          // Inicializar botão flutuante
+          updateFloatingCart(state.cart.length);
           
           console.log('✅ Login automático realizado com sucesso!');
           
@@ -342,6 +839,37 @@ const SUBSCRIPTION_PLANS = {
     const el = document.getElementById(id);
     if(!el) return;
     el.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  
+  // Função para scroll até o carrinho
+  function scrollToCart() {
+    scrollToSection('sec-cart');
+    // Adicionar efeito visual
+    const cartSection = document.getElementById('sec-cart');
+    if (cartSection) {
+      cartSection.style.animation = 'pulse 0.5s ease-in-out';
+      setTimeout(() => {
+        cartSection.style.animation = '';
+      }, 500);
+    }
+  }
+  
+  // Função para atualizar o botão flutuante do carrinho
+  function updateFloatingCart(count) {
+    const floatingBtn = document.getElementById('floatingCartBtn');
+    const countElement = document.getElementById('floatingCartCount');
+    
+    if (floatingBtn && countElement) {
+      countElement.textContent = count;
+      
+      // Mostrar/ocultar botão baseado no conteúdo do carrinho
+      if (count > 0) {
+        floatingBtn.style.display = 'flex';
+        floatingBtn.style.animation = 'bounce 0.6s ease-in-out';
+      } else {
+        floatingBtn.style.display = 'none';
+      }
+    }
   }
   
   /* ================ CLIENT / PROFILE ================= */
@@ -677,19 +1205,58 @@ const SUBSCRIPTION_PLANS = {
   }
   
   function removeFromCart(index) {
+    console.log('🗑️ Removendo item do carrinho:', index);
+    console.log('📦 Carrinho antes:', state.cart.length, 'itens');
+    
+    // Remover item do carrinho
     state.cart.splice(index, 1);
+    
+    // Salvar no localStorage
     set('cart', state.cart);
+    
+    console.log('📦 Carrinho depois:', state.cart.length, 'itens');
+    
+    // Re-renderizar carrinho para atualizar total
     renderCart();
+    
+    // Atualizar botão flutuante
+    updateFloatingCart(state.cart.length);
+    
+    // Mostrar feedback
     toast('Item removido do carrinho');
-    limparAgendamentoTemporario(); // Limpar agendamento se carrinho ficar vazio
+    
+    // Limpar agendamento se carrinho ficar vazio
+    if (state.cart.length === 0) {
+      limparAgendamentoTemporario();
+    }
+    
+    console.log('✅ Item removido com sucesso');
   }
   
   function renderCart(){
+    console.log('🛒 Renderizando carrinho...');
+    console.log('📦 Itens no carrinho:', state.cart.length);
+    console.log('📦 Conteúdo do carrinho:', state.cart);
+    
     const box = $('#cartList'); box.innerHTML='';
-    if(state.cart.length===0){ box.innerHTML='<div class="muted">Carrinho vazio.</div>'; return; }
+    if(state.cart.length===0){ 
+      box.innerHTML='<div class="muted">Carrinho vazio.</div>'; 
+      updateFloatingCart(0);
+      
+      // Atualizar total para zero
+      const totalElement = document.getElementById('cartTotal');
+      if (totalElement) {
+        totalElement.textContent = '0,00';
+        console.log('💰 Total zerado: R$ 0,00');
+      }
+      
+      return; 
+    }
     
     let total = 0;
     let hasSubscription = false;
+    
+    console.log('🧮 Calculando total dos itens...');
     
     state.cart.forEach((item,i)=>{
       const el = document.createElement('div'); el.className='service-card';
@@ -724,17 +1291,18 @@ const SUBSCRIPTION_PLANS = {
       }
       
       total += item.preco;
+      console.log(`💰 Item ${i+1}: ${item.nome} - R$ ${money(item.preco)} (Total parcial: R$ ${money(total)})`);
       box.appendChild(el);
     });
     
-    // Switch de busca e leva
+        // Switch de busca e leva
     let buscaSwitch = document.getElementById('buscaSwitch');
     if(!buscaSwitch){
       buscaSwitch = document.createElement('div');
       buscaSwitch.id = 'buscaSwitch';
       buscaSwitch.className = 'busca-switch-row';
       buscaSwitch.innerHTML = `
-        <div class="busca-leva-simple">
+        <div class="busca-leva-simple ${state.buscaLeva === true ? 'busca-leva-active' : ''}">
           <span class="busca-leva-title">Busca e Leva (R$ 4,99)</span>
           <label class='busca-switch ${state.buscaLeva === null ? 'busca-switch-pending' : ''}'>
             <input type='checkbox' id='buscaLevaCheck' ${state.buscaLeva === true ? 'checked' : ''}>
@@ -742,15 +1310,35 @@ const SUBSCRIPTION_PLANS = {
         </div>
       `;
       box.parentElement.insertBefore(buscaSwitch, box.parentElement.firstChild);
-      document.getElementById('buscaLevaCheck').onchange = (e)=>{
-        state.buscaLeva = e.target.checked;
-        set('buscaLeva', state.buscaLeva);
-        renderCart();
-      };
+        document.getElementById('buscaLevaCheck').onchange = (e)=>{
+          state.buscaLeva = e.target.checked;
+          set('buscaLeva', state.buscaLeva);
+          renderCart(); // Re-renderizar para atualizar a classe ativa
+        };
+    } else {
+      // Atualizar classe ativa se já existe
+      const buscaContainer = buscaSwitch.querySelector('.busca-leva-simple');
+      if (buscaContainer) {
+        if (state.buscaLeva === true) {
+          buscaContainer.classList.add('busca-leva-active');
+        } else {
+          buscaContainer.classList.remove('busca-leva-active');
+        }
+      }
     }
+    // Calcular total final incluindo busca e leva
     let busca = state.buscaLeva === true ? 4.99 : 0;
     let totalFinal = total + busca;
-    $('#cartTotal').textContent = money(totalFinal);
+    
+    // Atualizar total na interface
+    const totalElement = document.getElementById('cartTotal');
+    if (totalElement) {
+      totalElement.textContent = money(totalFinal);
+      console.log('💰 Total atualizado:', money(totalFinal), '(itens:', money(total), '+ busca e leva:', money(busca), ')');
+    }
+    
+    // Atualizar botão flutuante
+    updateFloatingCart(state.cart.length);
     
     // Botão de pagamento
     let payBox = document.getElementById('payBoxCustom');
@@ -776,7 +1364,10 @@ const SUBSCRIPTION_PLANS = {
     payBox.innerHTML = `
       ${subscriptionNote}
       <div style="margin-top:18px;text-align:center">
-        <button class="btn primary" id="btnShowPix">Fazer pagamento</button>
+        <button class="btn primary payment-btn" id="btnShowPix">
+          💳 Fazer Pagamento
+          <span class="payment-amount">R$ ${money(totalFinal)}</span>
+        </button>
       </div>
     `;
     
@@ -1154,13 +1745,13 @@ const SUBSCRIPTION_PLANS = {
     const firstAvailableDay = Math.max(1, today.getDate());
     if (firstAvailableDay <= totalDays && calendarCurrentMonth === today.getMonth() && calendarCurrentYear === today.getFullYear()) {
       // Aguardar um pouco para o DOM ser renderizado
-      setTimeout(() => {
-        selectDate(firstAvailableDay);
+      setTimeout(async () => {
+        await selectDate(firstAvailableDay);
       }, 100);
     }
   }
   // Selecionar data no calendário
-  function selectDate(day) {
+  async function selectDate(day) {
     console.log('📅 Data selecionada:', day);
     
     // Remover seleção anterior
@@ -1174,7 +1765,9 @@ const SUBSCRIPTION_PLANS = {
     
     // Formatar data para renderizar horários (corrigindo o problema do dia anterior)
     const today = new Date();
-    const selectedDate = new Date(calendarCurrentYear, calendarCurrentMonth, day);
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const selectedDate = new Date(currentYear, currentMonth, day);
     
     // Usar a data exata sem conversão de fuso horário
     const year = selectedDate.getFullYear();
@@ -1185,9 +1778,11 @@ const SUBSCRIPTION_PLANS = {
     console.log('📅 Data selecionada (dia):', day);
     console.log('📅 Data objeto:', selectedDate);
     console.log('📅 Data formatada (YYYY-MM-DD):', formattedDate);
+    console.log('📅 Ano atual:', currentYear);
+    console.log('📅 Mês atual:', currentMonth);
     
     // Renderizar horários para a data selecionada
-    renderAgendaHorarios(formattedDate);
+    await renderAgendaHorarios(formattedDate);
     
     // Habilitar botão de confirmação
     const btnConfirm = document.getElementById('btnConfirmAgenda');
@@ -1201,7 +1796,7 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Renderizar horários disponíveis para a data selecionada
-  function renderAgendaHorarios(dataSelecionada) {
+  async function renderAgendaHorarios(dataSelecionada) {
     console.log('🕐 Renderizando horários para:', dataSelecionada);
     
     const horariosBox = document.getElementById('agendaHorarios');
@@ -1222,7 +1817,7 @@ const SUBSCRIPTION_PLANS = {
     console.log('🕐 Horários gerados:', horarios);
     
     // Buscar horários já ocupados para esta data
-    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
+    const agendamentosGlobais = await loadAgendamentos();
     const horariosOcupados = agendamentosGlobais
       .filter(ag => ag.data === dataSelecionada)
       .map(ag => ag.horario);
@@ -1248,6 +1843,7 @@ const SUBSCRIPTION_PLANS = {
       <div class="horarios-header">
         <h4>Horários Disponíveis</h4>
         <p style="color: var(--brand); font-weight: 600; margin: 8px 0 0 0;">${dataFormatada}</p>
+        <p style="color: #999; font-size: 0.8rem; margin: 4px 0 0 0;">📱 Role para ver todos os horários</p>
       </div>
       <div class="horarios-grid">
     `;
@@ -1420,7 +2016,7 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Enviar pedido para WhatsApp
-  function enviarPedidoWhatsApp() {
+  async function enviarPedidoWhatsApp() {
     console.log('🔄 Iniciando envio do pedido...');
     console.log('📅 Agendamento:', state.agendamento);
     console.log('🛒 Carrinho:', state.cart);
@@ -1478,7 +2074,7 @@ const SUBSCRIPTION_PLANS = {
     saveAgendamento(agendamentoData);
     
     // AGORA SIM: Bloquear horários após confirmação de pagamento
-    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
+    const agendamentosGlobais = await loadAgendamentos();
     
     // Determinar quantos horários bloquear baseado no tipo de serviço
     let horariosParaBloquear = 1; // Por padrão, bloquear apenas 1 hora
@@ -1513,7 +2109,7 @@ const SUBSCRIPTION_PLANS = {
       }
     }
     
-    localStorage.setItem('agendamentosGlobais', JSON.stringify(agendamentosGlobais));
+    // Agendamentos globais agora são salvos diretamente pelo saveAgendamento() no Firebase
     console.log('🔒 Horários bloqueados após pagamento confirmado:', horariosParaBloquear);
     
     // Parar temporizador de reserva (pagamento confirmado)
@@ -1544,7 +2140,14 @@ const SUBSCRIPTION_PLANS = {
       mensagem += `\n*Busca e Leva:* R$ 4,99`;
     }
     mensagem += `\n*Total:* R$ ${money(totalFinal)}`;
-    mensagem += `\n\n*Pontos:* ${state.points} pts`;
+    // Calcular pontos que o cliente vai ganhar
+    const pontosParaGanhar = state.cart.reduce((total, item) => total + (item.pontos || 0), 0);
+    const pontosAtuais = state.points || 0;
+    const pontosFuturos = pontosAtuais + pontosParaGanhar;
+    
+    mensagem += `\n\n*Pontos Atuais:* ${pontosAtuais.toLocaleString('pt-BR')} pts`;
+    mensagem += `\n*Pontos a Ganhar:* +${pontosParaGanhar.toLocaleString('pt-BR')} pts`;
+    mensagem += `\n*Total Futuro:* ${pontosFuturos.toLocaleString('pt-BR')} pts`;
     mensagem += `\n\n*Status:* ✅ PAGAMENTO CONFIRMADO`;
     
     console.log('📱 Mensagem construída:', mensagem);
@@ -1606,7 +2209,7 @@ const SUBSCRIPTION_PLANS = {
 
   
   // Verificar se é admin (você pode mudar esta lógica)
-  function checkAdminAccess() {
+  async function checkAdminAccess() {
     // Opção 1: Chave secreta no localStorage (mais simples)
     const adminKey = localStorage.getItem('admin_key');
     if (adminKey === ADMIN_ACCESS_KEY) {
@@ -1623,6 +2226,8 @@ const SUBSCRIPTION_PLANS = {
       const isPhoneCorrect = state.client.phone === '35998538585';
       
       if (isErik && isPhoneCorrect) {
+        // Salvar no Firebase e localStorage
+        await saveAdminConfigToFirebase({ admin_key: ADMIN_ACCESS_KEY });
         localStorage.setItem('admin_key', ADMIN_ACCESS_KEY);
         return true;
       }
@@ -1691,27 +2296,45 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Carregar dados gerais do painel
-  function loadAdminData() {
-    loadDashboardData();
-    renderAgendamentos();
-    renderAdminCalendar();
-    loadClientsData();
-    loadServicesData();
-    loadFinanceData();
+  async function loadAdminData() {
+    console.log('🔄 Carregando dados do painel admin...');
+    
+    try {
+      // Carregar dados do dashboard
+      await loadDashboardData();
+      
+      // Carregar e renderizar agendamentos
+      await renderAgendamentos();
+      renderAdminCalendar();
+      
+      // Carregar dados de clientes
+      loadClientsData();
+      
+      // Carregar dados de serviços
+      loadServicesData();
+      
+      // Carregar dados financeiros
+      loadFinanceData();
+      
+      console.log('✅ Dados do painel admin carregados com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados do painel admin:', error);
+      toast('Erro ao carregar dados do painel. Tente novamente.');
+    }
   }
   
   // Carregar dados do dashboard
-  function loadDashboardData() {
+  async function loadDashboardData() {
     // Total de clientes
     const clients = getAllClients();
     document.getElementById('totalClients').textContent = clients.length;
     
     // Receita total
-    const totalRevenue = calculateTotalRevenue();
+    const totalRevenue = await calculateTotalRevenue();
     document.getElementById('totalRevenue').textContent = money(totalRevenue);
     
     // Total de serviços
-    const totalServices = calculateTotalServices();
+    const totalServices = await calculateTotalServices();
     document.getElementById('totalServices').textContent = totalServices;
     
     // Assinaturas ativas
@@ -1719,19 +2342,19 @@ const SUBSCRIPTION_PLANS = {
     document.getElementById('activeSubscriptions').textContent = activeSubscriptions;
     
     // Atividades recentes
-    loadRecentActivities();
+    await loadRecentActivities();
   }
   
   // Calcular receita total
-  function calculateTotalRevenue() {
-    const agendamentos = loadAgendamentos();
+  async function calculateTotalRevenue() {
+    const agendamentos = await loadAgendamentos();
     const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
     return servicosCompletados.reduce((total, ag) => total + ag.total, 0);
   }
   
   // Calcular total de serviços
-  function calculateTotalServices() {
-    const agendamentos = loadAgendamentos();
+  async function calculateTotalServices() {
+    const agendamentos = await loadAgendamentos();
     const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
     return servicosCompletados.reduce((total, ag) => total + ag.servicos.length, 0);
   }
@@ -1754,8 +2377,8 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Carregar atividades recentes
-  function loadRecentActivities() {
-    const agendamentos = loadAgendamentos();
+  async function loadRecentActivities() {
+    const agendamentos = await loadAgendamentos();
     const recentActivities = document.getElementById('recentActivities');
     
     if (!recentActivities) return;
@@ -1997,8 +2620,15 @@ const SUBSCRIPTION_PLANS = {
   /* ================ FUNÇÕES DE PERSISTÊNCIA ================= */
   
   // Buscar todos os clientes salvos
-  function getAllClients() {
+  async function getAllClients() {
     try {
+      // Tentar carregar do Firebase primeiro
+      const firebaseClients = await loadAllClientsFromFirebase();
+      if (firebaseClients && firebaseClients.length > 0) {
+        return firebaseClients;
+      }
+      
+      // Fallback para localStorage
       const clients = localStorage.getItem('clients');
       return clients ? JSON.parse(clients) : [];
     } catch (error) {
@@ -2077,7 +2707,7 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Salvar dados do cliente atual
-  function saveClientData() {
+  async function saveClientData() {
     if (!state.client || !state.client.cid) {
       console.log('❌ Cliente ou CID não encontrado para salvar dados');
       return;
@@ -2087,7 +2717,21 @@ const SUBSCRIPTION_PLANS = {
     console.log('💾 Salvando dados do cliente:', cid);
     
     try {
-      // Salvar dados principais
+      // Preparar dados do usuário para Firebase
+      const userData = {
+        points: state.points,
+        cart: state.cart,
+        agendamento: state.agendamento,
+        buscaLeva: state.buscaLeva,
+        subscription: state.subscription,
+        history: state.history,
+        client: state.client
+      };
+      
+      // Salvar no Firebase
+      await saveUserDataToFirebase(getUserId(), userData);
+      
+      // Salvar localmente como backup
       localStorage.setItem(`points_${cid}`, state.points.toString());
       localStorage.setItem(`cart_${cid}`, JSON.stringify(state.cart));
       localStorage.setItem(`agendamento_${cid}`, JSON.stringify(state.agendamento));
@@ -2137,7 +2781,7 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Carregar dados do cliente atual
-  function loadClientData() {
+  async function loadClientData() {
     if (!state.client || !state.client.cid) {
       console.log('❌ Cliente ou CID não encontrado para carregar dados');
       return;
@@ -2147,7 +2791,30 @@ const SUBSCRIPTION_PLANS = {
     console.log('📱 Carregando dados do cliente:', cid);
     
     try {
-      // Carregar pontos
+      // Tentar carregar do Firebase primeiro
+      const firebaseData = await loadUserDataFromFirebase(getUserId());
+      
+      if (firebaseData) {
+        console.log('✅ Dados carregados do Firebase');
+        state.points = firebaseData.points || 0;
+        state.cart = firebaseData.cart || [];
+        state.agendamento = firebaseData.agendamento || null;
+        state.buscaLeva = firebaseData.buscaLeva || false;
+        state.subscription = firebaseData.subscription || null;
+        state.history = firebaseData.history || [];
+        
+        console.log('✅ Estado carregado do Firebase:', {
+          points: state.points,
+          cartItems: state.cart.length,
+          hasAgendamento: !!state.agendamento,
+          buscaLeva: state.buscaLeva
+        });
+        return;
+      }
+      
+      console.log('⚠️ Dados não encontrados no Firebase, carregando do localStorage');
+      
+      // Fallback para localStorage
       const savedPoints = localStorage.getItem(`points_${cid}`);
       if (savedPoints) {
         state.points = parseInt(savedPoints);
@@ -2372,7 +3039,7 @@ const SUBSCRIPTION_PLANS = {
   function zerarTodosHorarios() {
     if (confirm('⚠️ ATENÇÃO: Isso irá remover TODOS os horários agendados do sistema!\n\nTem certeza que deseja continuar?')) {
       // Limpar agendamentos globais
-      localStorage.removeItem('agendamentosGlobais');
+      // Agendamentos globais são limpos automaticamente no Firebase
       
       // Limpar agendamentos do admin
       localStorage.removeItem('admin_agendamentos');
@@ -2496,20 +3163,113 @@ const SUBSCRIPTION_PLANS = {
   /* ================ GERENCIAMENTO DE AGENDAMENTOS ================= */
   
   // Salvar agendamento no sistema
-  function saveAgendamento(agendamentoData) {
-    let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
-    agendamentos.push(agendamentoData);
-    localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
-    console.log('✅ Agendamento salvo:', agendamentoData);
+  async function saveAgendamento(agendamentoData) {
+    try {
+      // Salvar no Firebase se disponível
+      if (window.firebaseDB && window.firebaseServices) {
+        try {
+          const { addDoc, collection } = window.firebaseServices;
+          const agendamentosRef = collection(window.firebaseDB, 'agendamentos');
+          
+          const agendamentoDoc = {
+            data: agendamentoData.data,
+            horario: agendamentoData.horario,
+            cliente: agendamentoData.cliente.nome,
+            telefone: agendamentoData.cliente.telefone,
+            servicos: agendamentoData.servicos,
+            total: agendamentoData.total,
+            status: 'pendente',
+            timestamp: new Date().toISOString(),
+            userId: getUserId(),
+            agendamentoId: agendamentoData.id
+          };
+          
+          await addDoc(agendamentosRef, agendamentoDoc);
+          console.log('✅ Agendamento salvo no Firebase com sucesso!');
+          
+        } catch (firebaseError) {
+          console.error('❌ Erro ao salvar no Firebase:', firebaseError);
+          console.log('⚠️ Salvando localmente como fallback');
+        }
+      }
+      
+      // Sempre salvar localmente como backup
+      let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+      agendamentos.push(agendamentoData);
+      localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
+      
+      // Também salvar nos agendamentos globais para sincronização
+      const agendamentosGlobais = await loadAgendamentos();
+      agendamentosGlobais.push({
+        data: agendamentoData.data,
+        horario: agendamentoData.horario,
+        cliente: agendamentoData.cliente.nome,
+        timestamp: new Date().toISOString(),
+        agendamentoId: agendamentoData.id
+      });
+      // Agendamentos globais agora são salvos diretamente pelo saveAgendamento() no Firebase
+      
+      console.log('✅ Agendamento salvo com sucesso:', agendamentoData);
+      console.log('📊 Total de agendamentos no sistema:', agendamentos.length);
+      
+      // Forçar atualização da interface admin se estiver aberta
+      if (document.getElementById('adminCalendar')) {
+        setTimeout(() => {
+          renderAdminCalendar();
+          renderAgendamentos();
+        }, 100);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao salvar agendamento:', error);
+      toast('Erro ao salvar agendamento. Tente novamente.');
+      return false;
+    }
   }
   
   // Carregar agendamentos do sistema
-  function loadAgendamentos() {
-    return JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+  async function loadAgendamentos() {
+    try {
+      // Tentar carregar do Firebase primeiro
+      if (window.firebaseDB && window.firebaseServices) {
+        try {
+          const { collection, getDocs, query, orderBy } = window.firebaseServices;
+          const agendamentosRef = collection(window.firebaseDB, 'agendamentos');
+          const q = query(agendamentosRef, orderBy('timestamp', 'desc'));
+          const querySnapshot = await getDocs(q);
+          
+          const agendamentos = [];
+          querySnapshot.forEach((doc) => {
+            agendamentos.push({ id: doc.id, ...doc.data() });
+          });
+          
+          console.log('✅ Agendamentos carregados do Firebase:', agendamentos.length);
+          
+          // Atualizar localStorage com os dados do Firebase
+          localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
+          
+          return agendamentos;
+          
+        } catch (firebaseError) {
+          console.error('❌ Erro ao carregar do Firebase:', firebaseError);
+          console.log('⚠️ Carregando localmente como fallback');
+        }
+      }
+      
+      // Fallback para localStorage
+      const agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+      console.log('📱 Agendamentos carregados localmente:', agendamentos.length);
+      return agendamentos;
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar agendamentos:', error);
+      return [];
+    }
   }
   
   // Renderizar calendário visual para admin
-  function renderAdminCalendar() {
+  async function renderAdminCalendar() {
     const calendarContainer = document.getElementById('adminCalendar');
     if (!calendarContainer) return;
     
@@ -2538,7 +3298,7 @@ const SUBSCRIPTION_PLANS = {
     const totalDays = lastDay.getDate();
     
     // Buscar agendamentos para este mês
-    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
+    const agendamentosGlobais = await loadAgendamentos();
     
     let calendarHTML = `
       <div class="admin-calendar-header">
@@ -2605,8 +3365,8 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Renderizar lista de agendamentos
-  function renderAgendamentos(filter = 'all') {
-    const agendamentos = loadAgendamentos();
+  async function renderAgendamentos(filter = 'all') {
+    const agendamentos = await loadAgendamentos();
     const container = document.getElementById('agendamentosList');
     
     if (!container) return;
@@ -2774,7 +3534,7 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Remover agendamento
-  function removerAgendamento(agendamentoId, data, horario) {
+  async function removerAgendamento(agendamentoId, data, horario) {
     if (!confirm(`Tem certeza que deseja remover o agendamento de ${data} às ${horario}?`)) {
       return;
     }
@@ -2785,7 +3545,7 @@ const SUBSCRIPTION_PLANS = {
     localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosFiltrados));
     
     // Remover dos horários globais ocupados
-    const agendamentosGlobais = JSON.parse(localStorage.getItem('agendamentosGlobais') || '[]');
+    const agendamentosGlobais = await loadAgendamentos();
     const globaisFiltrados = agendamentosGlobais.filter(ag => 
       !(ag.data === data && ag.horario === horario)
     );

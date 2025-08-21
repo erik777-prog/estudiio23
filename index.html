@@ -58,8 +58,8 @@
     <button class="nav-btn" onclick="scrollToSection('sec-agenda')">
       Agendar
     </button>
-    <button class="nav-btn" onclick="scrollToSection('sec-cart')">
-      Carrinho
+    <button class="nav-btn cart-nav-btn" onclick="scrollToSection('sec-cart')">
+      🛒 Carrinho
     </button>
   </div>
 
@@ -108,7 +108,7 @@
       <div id="agendamentoEscolhido" style="margin-top:12px;text-align:center;color:#ff7f00;font-weight:500;"></div>
     </section>
 
-    <section id="sec-cart" class="card">
+    <section id="sec-cart" class="card cart-section">
       <div class="cart-header">
         <h3>🛒 Meu Carrinho</h3>
         <button class="btn-clear-cart hidden" id="btnClearCart">Limpar</button>
@@ -399,6 +399,54 @@
     </div>
   </div>
 
+  <!-- Botão Flutuante do Carrinho -->
+  <div id="floatingCartBtn" class="floating-cart-btn" onclick="scrollToCart()">
+    <div class="cart-icon">🛒</div>
+    <div class="cart-count" id="floatingCartCount">0</div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDlEKzNoOmyXATY56PTymuSH6W_0rI12mA",
+      authDomain: "estudio23-193cd.firebaseapp.com",
+      projectId: "estudio23-193cd",
+      storageBucket: "estudio23-193cd.firebasestorage.app",
+      messagingSenderId: "1048310058777",
+      appId: "1:1048310058777:web:03557a841b35b90a7c3f88"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    
+    // Make Firebase services available globally
+    window.firebaseApp = app;
+    window.firebaseDB = db;
+    window.firebaseAuth = auth;
+    window.firebaseServices = {
+      collection,
+      doc,
+      setDoc,
+      getDoc,
+      getDocs,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      query,
+      where,
+      orderBy,
+      onSnapshot
+    };
+  </script>
+  
   <script src="js/app.js" defer></script>
 </body>
 </html>
