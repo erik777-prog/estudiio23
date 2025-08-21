@@ -1,0 +1,38 @@
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependências (se usar npm)
+node_modules/
+package-lock.json
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos de configuração local
+.env
+.env.local
+.env.production
+
+# Backup files
+*.bak
+*.backup
+
+# Arquivos de build
+dist/
+build/
+
+# Cache
+.cache/
+.temp/

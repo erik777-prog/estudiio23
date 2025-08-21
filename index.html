@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Estúdio 23 — App</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="assets/logo.png" />
+  <meta name="theme-color" content="#ff7f00" />
+</head>
+<body>
+
+  <!-- SPLASH: full-screen logo elegante -->
+  <div id="splash" class="splash">
+    <div class="splash-content">
+      <div class="splash-titulo">Estúdio 23</div>
+      <div class="splash-frase">Excelência em cada detalhe automotivo</div>
+      <div class="splash-bar"><div class="splash-bar-inner"></div></div>
+    </div>
+  </div>
+
+  <!-- Signup overlay -->
+  <div id="signup" class="screen hidden">
+    <div class="signup-card">
+      <h2>Bem-vindo ao Estúdio 23</h2>
+      <p>Para começar, informe seus dados de acesso:</p>
+      <div class="grid s2">
+        <input id="name" placeholder="Nome completo" type="text" autocomplete="name" />
+        <input id="phone" placeholder="WhatsApp (somente números)" type="tel" autocomplete="tel" />
+      </div>
+      <button class="btn primary" id="btnSaveSignup">Entrar no Sistema</button>
+    </div>
+  </div>
+
+  <!-- Topbar (limpa) -->
+  <header class="topbar">
+    <div class="logo-chip"><img src="assets/logo.png" alt="E23"></div>
+    <div class="brand">
+      <div class="brand-title">Estúdio 23</div>
+      <div id="clientChip" class="client-chip">Cliente anônimo</div>
+    </div>
+    <button class="btn ghost" id="btnShare">Compartilhar</button>
+    <button class="btn admin-btn hidden" id="btnAdmin" onclick="openAdminPanel()">ADM</button>
+    <button class="btn logout-btn" id="btnLogout" onclick="logout()">Sair</button>
+  </header>
+
+  <!-- Botões de Navegação -->
+  <div class="nav-buttons">
+    <button class="nav-btn" onclick="scrollToSection('sec-services')">
+      Serviços
+    </button>
+    <button class="nav-btn" onclick="scrollToSection('sec-subscription')">
+      Assinatura
+    </button>
+    <button class="nav-btn" onclick="scrollToSection('sec-points')">
+      Pontos
+    </button>
+    <button class="nav-btn" onclick="scrollToSection('sec-agenda')">
+      Agendar
+    </button>
+    <button class="nav-btn" onclick="scrollToSection('sec-cart')">
+      Carrinho
+    </button>
+  </div>
+
+  <!-- Status da Assinatura -->
+  <div class="subscription-status-top" id="subscriptionStatusTop">
+    <div class="status-info">
+      <h4>Status da Assinatura</h4>
+      <div class="status-details">
+        <span class="status-badge" id="statusBadgeTop">Sem assinatura</span>
+        <div class="status-text" id="statusTextTop">Você ainda não possui uma assinatura ativa</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteúdo principal -->
+  <main class="wrap" id="app" aria-live="polite">
+    <section id="sec-points" class="card">
+      <h3>Meus pontos</h3>
+      <div class="row">
+        <div class="kpi"><span id="pointsKpi">0</span> <small>pts</small></div>
+        <div class="pill">Meta indicada: 20.000 pts</div>
+      </div>
+      <div class="divider"></div>
+      <div class="row">
+        <button class="btn" onclick="scrollToSection('sec-redeem')">Trocar meus pontos</button>
+        <button class="btn" onclick="scrollToSection('sec-history')">Ver histórico</button>
+      </div>
+    </section>
+
+    <section id="sec-services" class="card">
+      <h3>Serviços</h3>
+      <div id="servicesList" class="services-grid"></div>
+    </section>
+
+    <section id="sec-agenda" class="card">
+      <h3>Agendar</h3>
+      <button class="btn primary" id="btnOpenAgendaModal">Escolher dia e horário</button>
+      <div id="agendamentoEscolhido" style="margin-top:12px;text-align:center;color:#ff7f00;font-weight:500;"></div>
+    </section>
+
+    <section id="sec-cart" class="card">
+      <h3>Carrinho</h3>
+      <div id="cartList" style="margin-bottom:12px"></div>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="kpi">Total: R$ <span id="cartTotal">0,00</span></div>
+        <div>
+          <button class="btn ghost" id="btnClearCart">Limpar</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="sec-pay" class="card">
+      <h3>Pagamento</h3>
+      <div id="pixAreaCustom"></div>
+    </section>
+
+    <section id="sec-redeem" class="card">
+      <h3>Trocar pontos</h3>
+      <div id="rewardsList"></div>
+    </section>
+
+    <section id="sec-history" class="card">
+      <h3>Histórico</h3>
+      <div id="historyList"></div>
+    </section>
+
+    <section id="sec-profile" class="card">
+      <h3>Meus dados</h3>
+      <div class="grid s2">
+        <input id="clientName" placeholder="Seu nome" />
+        <input id="clientPhone" placeholder="WhatsApp (somente números)" />
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="btnSaveClient">Salvar</button>
+      </div>
+      <div class="divider"></div>
+      <div class="grid s2">
+        <input id="personalLink" readonly />
+        <button class="btn ghost" id="btnCopyLink">Copiar link</button>
+      </div>
+    </section>
+
+    <!-- Seção de Assinatura (movida para o final) -->
+    <section id="sec-subscription" class="card">
+      <div class="subscription-header">
+        <h3>Programa de Assinatura Mensal</h3>
+        <div class="novidade-badge">NOVO</div>
+      </div>
+      
+      <div class="subscription-info">
+        <div class="subscription-benefits">
+          <h4>Benefícios da Assinatura</h4>
+          <ul>
+            <li><strong>Plano Mensal:</strong> 2 lavagens simples + 15% OFF em todos os serviços</li>
+            <li><strong>Plano Mensal Plus:</strong> 4 lavagens simples + 20% OFF em todos os serviços</li>
+            <li><strong>Pontos bônus</strong> mensais</li>
+            <li><strong>Agendamento prioritário</strong></li>
+          </ul>
+        </div>
+        
+        <div class="subscription-plans">
+          <div class="plan-card">
+            <div class="plan-header">
+              <h4>Plano Mensal</h4>
+              <div class="plan-price">R$ 119,99<span>/mês</span></div>
+            </div>
+            <div class="plan-features">
+              <div class="feature">✓ 2 Lavagens Simples</div>
+              <div class="feature">✓ 15% OFF em todos os serviços</div>
+              <div class="feature">✓ 800 pontos bônus mensais</div>
+              <div class="feature">✓ Agendamento prioritário</div>
+            </div>
+            <button class="btn primary" onclick="subscribeToPlan('monthly')">
+              Assinar Plano Mensal
+            </button>
+          </div>
+          
+          <div class="plan-card featured">
+            <div class="plan-badge">MAIS POPULAR</div>
+            <div class="plan-header">
+              <h4>Plano Mensal Plus</h4>
+              <div class="plan-price">R$ 224,99<span>/mês</span></div>
+              <div class="plan-savings">4x Lavagens + 20% OFF</div>
+            </div>
+            <div class="plan-features">
+              <div class="feature">✓ 4 Lavagens Simples</div>
+              <div class="feature">✓ 20% OFF em todos os serviços</div>
+              <div class="feature">✓ 1500 pontos bônus mensais</div>
+              <div class="feature">✓ Agendamento prioritário</div>
+            </div>
+            <button class="btn primary" onclick="subscribeToPlan('monthlyPlus')">
+              Assinar Plano Plus
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Voltar ao topo -->
+  <button id="btnTop" class="backtop hidden">Voltar ao topo</button>
+
+  <!-- Toast simples -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Modal de Agendamento -->
+  <div id="agendaModal" class="screen hidden">
+    <div class="agenda-modal-content">
+      <button class="agenda-modal-close" onclick="closeAgendaModal()">✕</button>
+      
+      <div class="agenda-container">
+        <!-- Modal da Data -->
+        <div class="agenda-date-modal">
+          <div class="modal-header">
+            <h3>📅 Selecionar Data</h3>
+            <p>Escolha uma data disponível para agendamento</p>
+          </div>
+          <div class="agenda-calendar" id="agendaCalendar"></div>
+        </div>
+        
+        <!-- Modal do Horário -->
+        <div class="agenda-time-modal">
+          <div class="modal-header">
+            <h3>🕐 Selecionar Horário</h3>
+            <p>Escolha um horário disponível para a data selecionada</p>
+          </div>
+          <div class="agenda-horarios" id="agendaHorarios">
+            <div class="no-date-selected">
+              <p>Selecione uma data primeiro para ver os horários disponíveis</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="agenda-actions">
+        <button class="btn primary" id="btnConfirmAgenda" disabled>Confirmar Agendamento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal do Painel Administrativo -->
+  <div id="adminModal" class="screen hidden">
+    <div class="admin-modal-content">
+      <div class="admin-header">
+        <h2>🔐 Painel Administrativo</h2>
+        <button class="admin-close" onclick="closeAdminPanel()">✕</button>
+      </div>
+      
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="showAdminTab('dashboard')">Dashboard</button>
+        <button class="admin-tab" onclick="showAdminTab('clients')">Clientes</button>
+        <button class="admin-tab" onclick="showAdminTab('services')">Serviços</button>
+        <button class="admin-tab" onclick="showAdminTab('finance')">Financeiro</button>
+      </div>
+      
+      <!-- Dashboard -->
+      <div id="adminDashboard" class="admin-tab-content active">
+        <div class="admin-stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value" id="totalClients">0</div>
+            <div class="stat-label">Total de Clientes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="totalRevenue">R$ 0,00</div>
+            <div class="stat-label">Receita Total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🚗</div>
+            <div class="stat-value" id="totalServices">0</div>
+            <div class="stat-label">Serviços Realizados</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-value" id="activeSubscriptions">0</div>
+            <div class="stat-label">Assinaturas Ativas</div>
+          </div>
+        </div>
+        
+        <div class="admin-recent">
+          <h3>Atividades Recentes</h3>
+          <div id="recentActivities" class="recent-list"></div>
+        </div>
+      </div>
+      
+      <!-- Clientes -->
+      <div id="adminClients" class="admin-tab-content">
+        <div class="admin-search">
+          <input type="text" id="clientSearch" placeholder="Buscar cliente..." onkeyup="searchClients()">
+        </div>
+        <div class="clients-table" id="clientsTable"></div>
+      </div>
+      
+      <!-- Serviços -->
+      <div id="adminServices" class="admin-tab-content">
+        <div class="services-stats">
+          <h3>Estatísticas por Serviço</h3>
+          <div id="servicesStats" class="services-grid"></div>
+        </div>
+      </div>
+      
+      <!-- Financeiro -->
+      <div id="adminFinance" class="admin-tab-content">
+        <div class="finance-overview">
+          <h3>Visão Geral Financeira</h3>
+          <div class="finance-cards">
+            <div class="finance-card">
+              <h4>Receita Mensal</h4>
+              <div class="finance-value" id="monthlyRevenue">R$ 0,00</div>
+            </div>
+            <div class="finance-card">
+              <h4>Receita Anual</h4>
+              <div class="finance-value" id="yearlyRevenue">R$ 0,00</div>
+            </div>
+            <div class="finance-card">
+              <h4>Média por Cliente</h4>
+              <div class="finance-value" id="avgPerClient">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="finance-chart">
+          <h3>Receita por Período</h3>
+          <div id="revenueChart" class="chart-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js" defer></script>
+</body>
+</html>
