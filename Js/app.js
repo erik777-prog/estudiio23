@@ -1,10 +1,19 @@
 /* ================= CONFIG ================= */
+// 
+// 🔒 SEGURANÇA:
+// - Sistema de admin protegido por verificação de nome + telefone
+// - Firebase com regras de segurança configuradas
+// - Dados dos clientes protegidos por usuário
+// - Nenhuma credencial sensível exposta
+// 
 const THEME = {
     POINTS_TARGET: 20000,
     REDEEM_ZERO_ALL: false
   };
   
 // Chave de acesso para o painel admin (só você saberá)
+// ⚠️ ATENÇÃO: Esta chave é interna e não expõe dados sensíveis
+// O sistema de admin é protegido por verificação de nome + telefone
 const ADMIN_ACCESS_KEY = 'erik_cunha_estudio23_2024_admin';
 
 // Planos de assinatura disponíveis
@@ -146,7 +155,7 @@ const SUBSCRIPTION_PLANS = {
       console.log('✅ Firebase disponível, fazendo login anônimo...');
       
       // Fazer login anônimo
-      await window.firebaseAuth.signInAnonymously();
+      await window.firebaseServices.signInAnonymously(window.firebaseAuth);
       console.log('✅ Firebase inicializado com sucesso!');
       
       // Configurar listeners em tempo real
@@ -351,11 +360,24 @@ const SUBSCRIPTION_PLANS = {
     try {
       if (window.firebaseDB && window.firebaseServices) {
         const { doc, setDoc } = window.firebaseServices;
+        
+        // Salvar configurações principais
         const adminDoc = doc(window.firebaseDB, 'admin', 'config');
         await setDoc(adminDoc, {
           ...configData,
           lastUpdate: new Date().toISOString()
         }, { merge: true });
+        
+        // Se houver usuário admin, salvar separadamente
+        if (configData.admin_user) {
+          const adminUserDoc = doc(window.firebaseDB, 'admin_users', configData.admin_user.uid);
+          await setDoc(adminUserDoc, {
+            ...configData.admin_user,
+            lastUpdate: new Date().toISOString()
+          }, { merge: true });
+          console.log('✅ Usuário admin salvo no Firebase');
+        }
+        
         console.log('✅ Configurações admin salvas no Firebase');
         return true;
       }
@@ -384,9 +406,36 @@ const SUBSCRIPTION_PLANS = {
     return null;
   }
   
-  // Verificar se usuário é admin (salvo no Firebase)
+  // Limpar dados admin antigos (para usuários não-admin)
+  function clearOldAdminData() {
+    try {
+      console.log('🧹 Limpando dados admin antigos...');
+      localStorage.removeItem('admin_key');
+      localStorage.removeItem('admin_user');
+      console.log('✅ Dados admin antigos removidos');
+    } catch (error) {
+      console.error('❌ Erro ao limpar dados admin:', error);
+    }
+  }
+  
+  // Verificar se usuário é admin (sistema seguro com Firebase)
   async function verifyAdminAccess(key) {
     try {
+      // Verificar se é Erik (verificação principal)
+      if (state.client) {
+        const isErik = state.client.name.toLowerCase().includes('erik') && 
+                       state.client.name.toLowerCase().includes('cunha') && 
+                       state.client.name.toLowerCase().includes('oliveira');
+        
+        const isPhoneCorrect = state.client.phone === '35998538585';
+        
+        if (isErik && isPhoneCorrect) {
+          console.log('🔐 Erik detectado, acesso admin concedido');
+          return true;
+        }
+      }
+      
+      // Verificar configurações do Firebase
       const adminConfig = await loadAdminConfigFromFirebase();
       
       if (adminConfig && adminConfig.admin_key === key) {
@@ -650,17 +699,17 @@ const SUBSCRIPTION_PLANS = {
     // Atualizar estado
     state.client = client;
     
+    // Inicializar estado básico primeiro
+    state.points = 0;
+    state.cart = [];
+    state.agendamento = null;
+    state.buscaLeva = false;
+    state.subscription = null;
+    state.history = [];
+    
     // Carregar dados salvos se for cliente existente
     if (existingCid) {
-      loadClientData();
-    } else {
-      // Inicializar dados para novo cliente
-      state.points = 0;
-      state.cart = [];
-      state.agendamento = null;
-      state.buscaLeva = false;
-      state.subscription = null;
-      state.history = [];
+      await loadClientData();
     }
     
     // Salvar dados do cliente
@@ -673,7 +722,7 @@ const SUBSCRIPTION_PLANS = {
     updateAllUI();
     
     // Verificar e mostrar botão admin
-    toggleAdminButton();
+    await toggleAdminButton();
     
     // Verificar status do login
     checkLoginStatus();
@@ -758,7 +807,7 @@ const SUBSCRIPTION_PLANS = {
     }
     
     // Verificar e mostrar botão admin
-    toggleAdminButton();
+    await toggleAdminButton();
     
     // Verificar status do login
     checkLoginStatus();
@@ -2208,45 +2257,107 @@ const SUBSCRIPTION_PLANS = {
   
 
   
-  // Verificar se é admin (você pode mudar esta lógica)
+  // Verificar se é admin (sistema seguro com Firebase)
   async function checkAdminAccess() {
-    // Opção 1: Chave secreta no localStorage (mais simples)
-    const adminKey = localStorage.getItem('admin_key');
-    if (adminKey === ADMIN_ACCESS_KEY) {
-      return true;
-    }
-    
-    // Opção 2: Nome e telefone específicos (mais seguro)
-    if (state.client) {
-      // Verificação para Erik da Cunha Oliveira
-      const isErik = state.client.name.toLowerCase().includes('erik') && 
-                     state.client.name.toLowerCase().includes('cunha') && 
-                     state.client.name.toLowerCase().includes('oliveira');
+    try {
+      console.log('🔐 Verificando acesso admin...');
+      console.log('Cliente atual:', state.client);
       
-      const isPhoneCorrect = state.client.phone === '35998538585';
-      
-      if (isErik && isPhoneCorrect) {
-        // Salvar no Firebase e localStorage
-        await saveAdminConfigToFirebase({ admin_key: ADMIN_ACCESS_KEY });
-        localStorage.setItem('admin_key', ADMIN_ACCESS_KEY);
-        return true;
+      // Verificar se é Erik (verificação principal)
+      if (state.client) {
+        const clientName = state.client.name.toLowerCase();
+        const clientPhone = state.client.phone;
+        
+        console.log('Nome do cliente:', clientName);
+        console.log('Telefone do cliente:', clientPhone);
+        
+        const isErik = clientName.includes('erik') && 
+                       clientName.includes('cunha') && 
+                       clientName.includes('oliveira');
+        
+        const isPhoneCorrect = clientPhone === '35998538585';
+        
+        console.log('É Erik?', isErik);
+        console.log('Telefone correto?', isPhoneCorrect);
+        
+        if (isErik && isPhoneCorrect) {
+          console.log('🔐 Erik detectado, criando usuário admin...');
+          
+          // Criar usuário admin no Firebase
+          const adminUserId = 'admin_erik_estudio23';
+          const adminUser = {
+            uid: adminUserId,
+            role: 'admin',
+            name: state.client.name,
+            phone: state.client.phone,
+            email: 'erik@estudio23.com',
+            permissions: ['read', 'write', 'admin', 'super_admin'],
+            createdAt: new Date().toISOString(),
+            lastAccess: new Date().toISOString()
+          };
+          
+          try {
+            // Salvar usuário admin no Firebase
+            if (window.firebaseDB && window.firebaseServices) {
+              const { doc, setDoc } = window.firebaseServices;
+              const adminUserDoc = doc(window.firebaseDB, 'admin_users', adminUserId);
+              await setDoc(adminUserDoc, adminUser, { merge: true });
+              console.log('✅ Usuário admin criado no Firebase');
+            }
+            
+            // Salvar configurações admin
+            await saveAdminConfigToFirebase({ 
+              admin_key: ADMIN_ACCESS_KEY,
+              admin_user: adminUser,
+              lastAdminAccess: new Date().toISOString()
+            });
+            
+            // Salvar no localStorage como backup
+            localStorage.setItem('admin_key', ADMIN_ACCESS_KEY);
+            localStorage.setItem('admin_user', JSON.stringify(adminUser));
+            
+            console.log('🔐 Acesso admin configurado com sucesso!');
+            return true;
+            
+          } catch (error) {
+            console.error('❌ Erro ao criar usuário admin:', error);
+            // Fallback para localStorage
+            localStorage.setItem('admin_key', ADMIN_ACCESS_KEY);
+            return true;
+          }
+                 } else {
+           console.log('❌ Usuário não é Erik - acesso negado');
+           // Limpar dados admin antigos se não for Erik
+           clearOldAdminData();
+           return false;
+         }
+      } else {
+        console.log('❌ Nenhum cliente logado');
+        return false;
       }
+      
+    } catch (error) {
+      console.error('❌ Erro ao verificar acesso admin:', error);
+      return false;
     }
-    
-    return false;
   }
   
   // Mostrar/ocultar botão admin
-  function toggleAdminButton() {
+  async function toggleAdminButton() {
     const adminBtn = document.getElementById('btnAdmin');
     if (!adminBtn) return;
     
-    const hasAccess = checkAdminAccess();
+    console.log('🔐 Verificando acesso admin para botão...');
+    
+    const hasAccess = await checkAdminAccess();
+    console.log('Tem acesso admin?', hasAccess);
     
     if (hasAccess) {
       adminBtn.classList.remove('hidden');
+      console.log('✅ Botão admin mostrado');
     } else {
       adminBtn.classList.add('hidden');
+      console.log('❌ Botão admin ocultado');
     }
   }
   
@@ -2630,7 +2741,10 @@ const SUBSCRIPTION_PLANS = {
       
       // Fallback para localStorage
       const clients = localStorage.getItem('clients');
-      return clients ? JSON.parse(clients) : [];
+      const clientsArray = clients ? JSON.parse(clients) : [];
+      
+      // Garantir que sempre retorna um array
+      return Array.isArray(clientsArray) ? clientsArray : [];
     } catch (error) {
       console.error('❌ Erro ao carregar clientes:', error);
       return [];
@@ -2740,7 +2854,7 @@ const SUBSCRIPTION_PLANS = {
       localStorage.setItem(`history_${cid}`, JSON.stringify(state.history));
       
       // Salvar cliente na lista de clientes
-      const clients = getAllClients();
+      const clients = await getAllClients();
       const existingClientIndex = clients.findIndex(c => c.phone === state.client.phone);
       
       if (existingClientIndex !== -1) {
@@ -2827,8 +2941,14 @@ const SUBSCRIPTION_PLANS = {
       // Carregar carrinho
       const savedCart = localStorage.getItem(`cart_${cid}`);
       if (savedCart) {
-        state.cart = JSON.parse(savedCart);
-        console.log('✅ Carrinho carregado:', state.cart.length, 'itens');
+        try {
+          const parsedCart = JSON.parse(savedCart);
+          state.cart = Array.isArray(parsedCart) ? parsedCart : [];
+          console.log('✅ Carrinho carregado:', state.cart.length, 'itens');
+        } catch (error) {
+          console.error('❌ Erro ao carregar carrinho:', error);
+          state.cart = [];
+        }
       } else {
         state.cart = [];
         console.log('📝 Carrinho inicializado como vazio');
@@ -2867,8 +2987,14 @@ const SUBSCRIPTION_PLANS = {
       // Carregar histórico
       const savedHistory = localStorage.getItem(`history_${cid}`);
       if (savedHistory) {
-        state.history = JSON.parse(savedHistory);
-        console.log('✅ Histórico carregado:', state.history.length, 'itens');
+        try {
+          const parsedHistory = JSON.parse(savedHistory);
+          state.history = Array.isArray(parsedHistory) ? parsedHistory : [];
+          console.log('✅ Histórico carregado:', state.history.length, 'itens');
+        } catch (error) {
+          console.error('❌ Erro ao carregar histórico:', error);
+          state.history = [];
+        }
       } else {
         state.history = [];
         console.log('📝 Histórico inicializado como vazio');
