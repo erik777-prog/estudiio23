@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚗 Estúdio 23 - App de Agendamentos
 
 Aplicativo mobile para agendamento de serviços automotivos com sistema de pontos e assinaturas.
@@ -110,3 +111,7 @@ Proprietário - Estúdio 23
 ---
 
 **Desenvolvido com ❤️ para o Estúdio 23**
+=======
+# estudiio23
+web app de uma estetica automotiva 
+>>>>>>> e43ce604b92febdfdf05b832baec5673d04e7b71
