@@ -40,7 +40,7 @@
       <div id="clientChip" class="client-chip">Cliente anônimo</div>
     </div>
     <button class="btn ghost" id="btnShare">Compartilhar</button>
-    <button class="btn admin-btn hidden" id="btnAdmin" onclick="openAdminPanel()">ADM</button>
+    <button class="btn admin-btn hidden" id="btnAdmin" onclick="openAdminPanel()">Admin</button>
     <button class="btn logout-btn" id="btnLogout" onclick="logout()">Sair</button>
   </header>
 
@@ -98,8 +98,182 @@
     </section>
 
     <section id="sec-services" class="card">
-      <h3>Serviços</h3>
+      <div class="services-header">
+        <h3>Serviços</h3>
+        <button class="btn-pulse" onclick="toggleServicesPage()">
+          Conheça nossos serviços
+        </button>
+      </div>
       <div id="servicesList" class="services-grid"></div>
+      
+      <!-- Página detalhada de serviços (inicialmente oculta) -->
+      <div id="servicesDetailedPage" class="services-detailed-page hidden">
+        <div class="services-detailed-header">
+          <button class="btn-back" onclick="toggleServicesPage()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Voltar aos serviços
+          </button>
+          <h2>Nossos Serviços</h2>
+          <p>Conheça todos os nossos serviços com detalhes e preços</p>
+        </div>
+        
+        <div class="services-detailed-grid">
+          <!-- Lavagem Simples -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/lavagem_simples.png" alt="Lavagem Simples">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Lavagem Simples</h3>
+              <div class="service-price">R$ 70,00</div>
+              <p>Lavagem externa completa com produtos de alta qualidade, incluindo limpeza de rodas e pneus.</p>
+              <div class="service-features">
+                <span class="feature">✓ Lavagem externa</span>
+                <span class="feature">✓ Limpeza de rodas</span>
+                <span class="feature">✓ Secagem</span>
+                <span class="feature">✓ Produtos premium</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('lavagem_simples', 'Lavagem Simples', 70.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Lavagem Detalhada -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/lavagem_detalhada.png" alt="Lavagem Detalhada">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Lavagem Detalhada</h3>
+              <div class="service-price">R$ 100,00</div>
+              <p>Lavagem completa interna e externa com atenção especial aos detalhes e acabamentos.</p>
+              <div class="service-features">
+                <span class="feature">✓ Lavagem externa completa</span>
+                <span class="feature">✓ Limpeza interna</span>
+                <span class="feature">✓ Aspiração</span>
+                <span class="feature">✓ Limpeza de vidros</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('lavagem_detalhada', 'Lavagem Detalhada', 100.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Polimento -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/polimento.png" alt="Polimento">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Polimento Técnico (a partir de)</h3>
+              <div class="service-price">R$ 450,00</div>
+              <p>Polimento profissional para restaurar o brilho da pintura e remover riscos superficiais.</p>
+              <div class="service-features">
+                <span class="feature">✓ Avaliação da pintura</span>
+                <span class="feature">✓ Polimento mecânico</span>
+                <span class="feature">✓ Remoção de riscos</span>
+                <span class="feature">✓ Proteção da pintura</span>
+                <span class="feature">✓ Sujeito a análise no WhatsApp</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('polimento', 'Polimento Técnico (a partir de)', 450.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Vitrificação -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/vitrificacao.png" alt="Vitrificação">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Vitrificação 12m (incluso polimento)</h3>
+              <div class="service-price">R$ 1.000,00</div>
+              <p>Proteção duradoura da pintura com cerâmica de alta tecnologia e brilho intenso por 12 meses.</p>
+              <div class="service-features">
+                <span class="feature">✓ Preparação da pintura</span>
+                <span class="feature">✓ Polimento incluído</span>
+                <span class="feature">✓ Aplicação de cerâmica</span>
+                <span class="feature">✓ Proteção UV por 12 meses</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('vitrificacao', 'Vitrificação 12m (incluso polimento)', 1000.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Higienização 5 lugares -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/higenizacao.png" alt="Higienização Interna (5 lugares)">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Higienização Interna (5 lugares)</h3>
+              <div class="service-price">R$ 450,00</div>
+              <p>Limpeza profunda do interior com produtos bactericidas e desodorização completa para veículos de 5 lugares.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza de estofados</span>
+                <span class="feature">✓ Desodorização</span>
+                <span class="feature">✓ Produtos bactericidas</span>
+                <span class="feature">✓ Limpeza de ar condicionado</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('higienizacao_5', 'Higienização Interna (5 lugares)', 450.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Higienização 7 lugares -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/higenizacao.png" alt="Higienização Interna (7 lugares)">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Higienização Interna (7 lugares)</h3>
+              <div class="service-price">R$ 600,00</div>
+              <p>Limpeza profunda do interior com produtos bactericidas e desodorização completa para veículos de 7 lugares.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza de estofados</span>
+                <span class="feature">✓ Desodorização</span>
+                <span class="feature">✓ Produtos bactericidas</span>
+                <span class="feature">✓ Limpeza de ar condicionado</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('higienizacao_7', 'Higienização Interna (7 lugares)', 600.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Lavagem Moto -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/lavagem_simples.png" alt="Lavagem Moto Detalhada">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Lavagem Moto Detalhada</h3>
+              <div class="service-price">R$ 50,00</div>
+              <p>Lavagem completa e detalhada para motocicletas com produtos específicos e atenção aos detalhes.</p>
+              <div class="service-features">
+                <span class="feature">✓ Lavagem externa completa</span>
+                <span class="feature">✓ Limpeza de rodas</span>
+                <span class="feature">✓ Secagem</span>
+                <span class="feature">✓ Produtos para moto</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('lavagem_moto', 'Lavagem Moto Detalhada', 50.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Enceramento -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/cristalizacao.png" alt="Enceramento">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Enceramento</h3>
+              <div class="service-price">R$ 20,00</div>
+              <p>Proteção e brilho da pintura com cera de alta qualidade por 1 mês.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza da pintura</span>
+                <span class="feature">✓ Aplicação de cera</span>
+                <span class="feature">✓ Proteção por 1 mês</span>
+                <span class="feature">✓ Brilho intenso</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('encerramento', 'Enceramento', 20.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="sec-agenda" class="card">
@@ -229,24 +403,33 @@
             <p>Escolha uma data disponível para agendamento</p>
           </div>
           <div class="agenda-calendar" id="agendaCalendar"></div>
-        </div>
-        
-        <!-- Modal do Horário -->
-        <div class="agenda-time-modal">
-          <div class="modal-header">
-            <h3>🕐 Selecionar Horário</h3>
-            <p>Escolha um horário disponível para a data selecionada</p>
-          </div>
-          <div class="agenda-horarios" id="agendaHorarios">
-            <div class="no-date-selected">
-              <p>Selecione uma data primeiro para ver os horários disponíveis</p>
-            </div>
-          </div>
+          
+          <!-- Área para mensagem de data selecionada e botão de horários -->
+          <div id="agendaHorarios"></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal de Horários (sobrepõe o calendário) -->
+  <div id="horariosModal" class="screen hidden">
+    <div class="horarios-modal-content">
+      <div class="horarios-modal-header">
+        <button class="horarios-modal-back" onclick="closeHorariosModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h3>🕐 Selecionar Horário</h3>
+        <p id="horariosDataSelecionada">Escolha um horário disponível</p>
+      </div>
       
-      <div class="agenda-actions">
-        <button class="btn primary" id="btnConfirmAgenda" disabled>Confirmar Agendamento</button>
+      <div class="horarios-container" id="horariosContainer">
+        <!-- Horários serão renderizados aqui -->
+      </div>
+      
+      <div class="horarios-actions">
+        <button class="btn primary" id="btnConfirmHorario" onclick="confirmarAgendamentoModal()" disabled>Confirmar Agendamento</button>
       </div>
     </div>
   </div>

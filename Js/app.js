@@ -598,7 +598,7 @@ const SUBSCRIPTION_PLANS = {
       return false;
     }
   }
-  const maskPhone = p => !p ? '' : '('+p.slice(0,2)+') '+p.slice(2,7)+'-'+p.slice(7,11);
+  // Função maskPhone movida para baixo para evitar duplicação
   
   /* ================ FUNÇÕES DE NAVEGAÇÃO DO CALENDÁRIO ================ */
   
@@ -1668,47 +1668,7 @@ const SUBSCRIPTION_PLANS = {
   }
   document.getElementById('btnOpenAgendaModal').onclick = openAgendaModal;
   document.querySelector('.agenda-modal-close').onclick = closeAgendaModal;
-  // Confirmar agendamento
-  $('#btnConfirmAgenda').addEventListener('click', function() {
-    if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
-      toast('Selecione uma data e horário primeiro');
-      return;
-    }
-    
-    const { data, horario } = state.agendamento;
-    
-    console.log('✅ Confirmando agendamento:', data, horario);
-    
-    // Salvar agendamento no estado (apenas reserva temporária)
-    state.agendamento = { data, horario };
-    
-    // NOTA: Não bloquear horários agora - só bloquear após pagamento confirmado
-  
-  // Salvar agendamento temporário (sem bloquear)
-  set('agendamento', state.agendamento);
-  
-  // Iniciar temporizador de 5 minutos para reserva temporária
-  iniciarTemporizadorReserva();
-    
-    // Atualizar interface
-    document.getElementById('agendamentoEscolhido').innerHTML = `
-      <div style="background: rgba(255,127,0,0.1); padding: 12px; border-radius: 8px; border: 1px solid var(--brand);">
-        <strong>Agendado para:</strong><br>
-        ${new Date(data).toLocaleDateString('pt-BR')} às ${horario}
-      </div>
-    `;
-    
-    // Fechar modal
-    closeAgendaModal();
-    
-    // Mensagem de sucesso
-    toast('Agendamento confirmado com sucesso!');
-    
-    // Salvar dados automaticamente
-    autoSave();
-    
-    console.log('✅ Agendamento salvo com sucesso');
-  });
+
   // Renderizar calendário de agendamento
   function renderAgendaCalendar() {
     const calendar = document.getElementById('agendaCalendar');
@@ -1816,7 +1776,9 @@ const SUBSCRIPTION_PLANS = {
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
-    const selectedDate = new Date(currentYear, currentMonth, day);
+    
+    // Criar data de forma segura para evitar problemas de fuso horário
+    const selectedDate = new Date(currentYear, currentMonth, day, 12, 0, 0, 0);
     
     // Usar a data exata sem conversão de fuso horário
     const year = selectedDate.getFullYear();
@@ -1830,18 +1792,30 @@ const SUBSCRIPTION_PLANS = {
     console.log('📅 Ano atual:', currentYear);
     console.log('📅 Mês atual:', currentMonth);
     
-    // Renderizar horários para a data selecionada
-    await renderAgendaHorarios(formattedDate);
+    // Salvar a data selecionada no estado
+    state.agendamento = { data: formattedDate, horario: null };
     
-    // Habilitar botão de confirmação
-    const btnConfirm = document.getElementById('btnConfirmAgenda');
-    if (btnConfirm) {
-      btnConfirm.disabled = false;
-      btnConfirm.textContent = 'Selecione um horário para continuar';
-      console.log('✅ Botão de confirmação habilitado');
+    // Mostrar mensagem de instrução
+    const agendaHorarios = document.getElementById('agendaHorarios');
+    console.log('🔍 Procurando elemento agendaHorarios:', agendaHorarios);
+    
+    if (agendaHorarios) {
+      console.log('✅ Elemento agendaHorarios encontrado, exibindo mensagem...');
+      agendaHorarios.innerHTML = `
+        <div class="date-selected-message">
+          <h4>✅ Data Selecionada: ${selectedDate.toLocaleDateString('pt-BR')}</h4>
+          <p>Clique em "Ver Horários" para escolher um horário disponível</p>
+          <button class="btn primary" onclick="openHorariosModal('${formattedDate}')">
+            Ver Horários
+          </button>
+        </div>
+      `;
+      console.log('✅ Mensagem de data selecionada exibida com sucesso');
     } else {
-      console.log('❌ Botão de confirmação não encontrado');
+      console.log('❌ Elemento agendaHorarios NÃO encontrado!');
     }
+    
+
   }
   
   // Renderizar horários disponíveis para a data selecionada
@@ -1947,7 +1921,10 @@ const SUBSCRIPTION_PLANS = {
     const btnConfirm = document.getElementById('btnConfirmAgenda');
     if (btnConfirm) {
       btnConfirm.disabled = false;
-      btnConfirm.textContent = `Confirmar: ${new Date(data).toLocaleDateString('pt-BR')} às ${horario}`;
+      // Formatar data de forma segura para evitar problemas de fuso horário
+      const [year, month, day] = data.split('-').map(Number);
+      const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+      btnConfirm.textContent = `Confirmar: ${dataObj.toLocaleDateString('pt-BR')} às ${horario}`;
       console.log('✅ Botão de confirmação atualizado e habilitado');
     } else {
       console.log('❌ Botão de confirmação não encontrado ao selecionar horário');
@@ -2152,7 +2129,10 @@ const SUBSCRIPTION_PLANS = {
         agendamentosGlobais.push({
           data: state.agendamento.data,
           horario: horarioString,
-          cliente: state.client ? state.client.name : 'Cliente',
+          cliente: {
+            nome: state.client ? state.client.name : 'Cliente',
+            telefone: state.client ? state.client.phone : 'Não informado'
+          },
           timestamp: new Date().toISOString()
         });
       }
@@ -2378,7 +2358,7 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Alternar entre abas do painel
-  function showAdminTab(tabName) {
+  async function showAdminTab(tabName) {
     // Ocultar todas as abas
     document.querySelectorAll('.admin-tab-content').forEach(tab => {
       tab.classList.remove('active');
@@ -2395,7 +2375,7 @@ const SUBSCRIPTION_PLANS = {
     if (tabName === 'dashboard') {
       loadDashboardData();
     } else if (tabName === 'agendamentos') {
-      renderAgendamentos();
+      await renderAgendamentos();
       renderAdminCalendar();
     } else if (tabName === 'clients') {
       loadClientsData();
@@ -2436,9 +2416,14 @@ const SUBSCRIPTION_PLANS = {
   
   // Carregar dados do dashboard
   async function loadDashboardData() {
-    // Total de clientes
-    const clients = getAllClients();
-    document.getElementById('totalClients').textContent = clients.length;
+    try {
+      // Total de clientes
+      const clients = await getAllClients();
+      if (Array.isArray(clients)) {
+        document.getElementById('totalClients').textContent = clients.length;
+      } else {
+        document.getElementById('totalClients').textContent = '0';
+      }
     
     // Receita total
     const totalRevenue = await calculateTotalRevenue();
@@ -2449,11 +2434,20 @@ const SUBSCRIPTION_PLANS = {
     document.getElementById('totalServices').textContent = totalServices;
     
     // Assinaturas ativas
-    const activeSubscriptions = calculateActiveSubscriptions();
+    const activeSubscriptions = await calculateActiveSubscriptions();
     document.getElementById('activeSubscriptions').textContent = activeSubscriptions;
     
     // Atividades recentes
     await loadRecentActivities();
+    
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados do dashboard:', error);
+      // Definir valores padrão em caso de erro
+      document.getElementById('totalClients').textContent = '0';
+      document.getElementById('totalRevenue').textContent = 'R$ 0,00';
+      document.getElementById('totalServices').textContent = '0';
+      document.getElementById('activeSubscriptions').textContent = '0';
+    }
   }
   
   // Calcular receita total
@@ -2471,20 +2465,27 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Calcular assinaturas ativas
-  function calculateActiveSubscriptions() {
-    const clients = getAllClients();
-    let activeCount = 0;
-    
-    clients.forEach(client => {
-      if (client.subscription && client.subscription.active) {
-        const subscriptionEnd = new Date(client.subscription.endDate);
-        if (subscriptionEnd > new Date()) {
-          activeCount++;
-        }
+  async function calculateActiveSubscriptions() {
+    try {
+      const clients = await getAllClients();
+      let activeCount = 0;
+      
+      if (Array.isArray(clients)) {
+        clients.forEach(client => {
+          if (client.subscription && client.subscription.active) {
+            const subscriptionEnd = new Date(client.subscription.endDate);
+            if (subscriptionEnd > new Date()) {
+              activeCount++;
+            }
+          }
+        });
       }
-    });
-    
-    return activeCount;
+      
+      return activeCount;
+    } catch (error) {
+      console.error('❌ Erro ao calcular assinaturas ativas:', error);
+      return 0;
+    }
   }
   
   // Carregar atividades recentes
@@ -2515,7 +2516,7 @@ const SUBSCRIPTION_PLANS = {
       return `
         <div class="activity-item">
           <div class="activity-header">
-            <span class="activity-client">${ag.cliente.nome}</span>
+            <span class="activity-client">${ag.cliente && ag.cliente.nome ? ag.cliente.nome : (typeof ag.cliente === 'string' ? ag.cliente : 'Cliente não informado')}</span>
             <span class="activity-status status-${ag.status}">${statusText[ag.status]}</span>
           </div>
           <div class="activity-details">
@@ -2528,44 +2529,73 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Carregar dados dos clientes
-  function loadClientsData() {
-    const clientsTable = document.getElementById('clientsTable');
-    clientsTable.innerHTML = '';
-    
-    // Cabeçalho da tabela
-    const headerRow = document.createElement('div');
-    headerRow.className = 'client-row header';
-    headerRow.innerHTML = `
-      <div>Nome</div>
-      <div>WhatsApp</div>
-      <div>Último Serviço</div>
-      <div>Total Gasto</div>
-      <div>Status</div>
-    `;
-    clientsTable.appendChild(headerRow);
-    
-    // Buscar todos os clientes
-    const clients = getAllClients();
-    
-    clients.forEach(client => {
-      const clientRow = document.createElement('div');
-      clientRow.className = 'client-row';
+  async function loadClientsData() {
+    try {
+      const clientsTable = document.getElementById('clientsTable');
+      if (!clientsTable) {
+        console.log('❌ Tabela de clientes não encontrada');
+        return;
+      }
       
-      const lastService = getLastServiceDate(client.phone);
-      const totalSpent = calculateClientTotal(client.phone);
-      const isActive = isClientActive(client.phone);
+      clientsTable.innerHTML = '';
       
-      clientRow.innerHTML = `
-        <div class="client-name" data-label="Nome">${client.name}</div>
-        <div class="client-phone" data-label="WhatsApp">${maskPhone(client.phone)}</div>
-        <div class="client-last-service" data-label="Último Serviço">${lastService}</div>
-        <div class="client-total" data-label="Total Gasto">R$ ${money(totalSpent)}</div>
-        <div class="client-status ${isActive ? 'status-active' : 'status-inactive'}" data-label="Status">
-          ${isActive ? 'Ativo' : 'Inativo'}
-        </div>
+      // Cabeçalho da tabela
+      const headerRow = document.createElement('div');
+      headerRow.className = 'client-row header';
+      headerRow.innerHTML = `
+        <div>Nome</div>
+        <div>WhatsApp</div>
+        <div>Último Serviço</div>
+        <div>Total Gasto</div>
+        <div>Status</div>
       `;
-      clientsTable.appendChild(clientRow);
-    });
+      clientsTable.appendChild(headerRow);
+      
+      // Buscar todos os clientes
+      const clients = await getAllClients();
+      console.log('🔍 Clientes encontrados:', clients);
+      
+      if (clients.length === 0) {
+        clientsTable.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: var(--muted);">
+            <div style="font-size: 3rem; margin-bottom: 16px;">👥</div>
+            <h3>Nenhum cliente encontrado</h3>
+            <p>Os clientes aparecerão aqui quando fizerem login no app.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      for (const client of clients) {
+        const clientRow = document.createElement('div');
+        clientRow.className = 'client-row';
+        
+        // Garantir que o cliente tenha as propriedades necessárias
+        const clientName = client.name || client.nome || 'Nome não informado';
+        const clientPhone = client.phone || client.telefone || 'Telefone não informado';
+        
+        const lastService = await getLastServiceDate(clientPhone);
+        const totalSpent = await calculateClientTotal(clientPhone);
+        const isActive = await isClientActive(clientPhone);
+        
+        clientRow.innerHTML = `
+          <div class="client-name" data-label="Nome">${clientName}</div>
+          <div class="client-phone" data-label="WhatsApp">${maskPhone(clientPhone)}</div>
+          <div class="client-last-service" data-label="Último Serviço">${lastService}</div>
+          <div class="client-total" data-label="Total Gasto">R$ ${money(totalSpent)}</div>
+          <div class="client-status ${isActive ? 'status-active' : 'status-inactive'}" data-label="Status">
+            ${isActive ? 'Ativo' : 'Inativo'}
+          </div>
+        `;
+        clientsTable.appendChild(clientRow);
+      }
+      
+      console.log('✅ Dados dos clientes carregados com sucesso');
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados dos clientes:', error);
+      toast('❌ Erro ao carregar dados dos clientes');
+    }
   }
   
   // Buscar clientes
@@ -2586,11 +2616,12 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Carregar dados dos serviços
-  function loadServicesData() {
-    const servicesStats = document.getElementById('servicesStats');
-    servicesStats.innerHTML = '';
-    
-    const serviceStats = calculateServiceStats();
+  async function loadServicesData() {
+    try {
+      const servicesStats = document.getElementById('servicesStats');
+      servicesStats.innerHTML = '';
+      
+      const serviceStats = await calculateServiceStats();
     
     Object.keys(serviceStats).forEach(serviceName => {
       const stats = serviceStats[serviceName];
@@ -2616,73 +2647,171 @@ const SUBSCRIPTION_PLANS = {
         servicesStats.appendChild(serviceCard);
       }
     });
+    
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados dos serviços:', error);
+      const servicesStats = document.getElementById('servicesStats');
+      if (servicesStats) {
+        servicesStats.innerHTML = '<div style="color: #666; text-align: center; padding: 40px;">Erro ao carregar dados dos serviços</div>';
+      }
+    }
   }
   
   // Carregar dados financeiros
-  function loadFinanceData() {
-    // Receita mensal
-    const monthlyRevenue = calculateMonthlyRevenue();
-    document.getElementById('monthlyRevenue').textContent = money(monthlyRevenue);
-    
-    // Receita anual
-    const yearlyRevenue = calculateYearlyRevenue();
-    document.getElementById('yearlyRevenue').textContent = money(yearlyRevenue);
-    
-    // Média por cliente
-    const avgPerClient = calculateAveragePerClient();
-    document.getElementById('avgPerClient').textContent = money(avgPerClient);
-    
-    // Gráfico simples
-    loadRevenueChart();
+  async function loadFinanceData() {
+    try {
+      // Receita mensal
+      const monthlyRevenue = await calculateMonthlyRevenue();
+      const monthlyElement = document.getElementById('monthlyRevenue');
+      if (monthlyElement) monthlyElement.textContent = money(monthlyRevenue);
+      
+      // Receita anual
+      const yearlyRevenue = await calculateYearlyRevenue();
+      const yearlyElement = document.getElementById('yearlyRevenue');
+      if (yearlyElement) yearlyElement.textContent = money(yearlyRevenue);
+      
+      // Média por cliente
+      const avgPerClient = await calculateAveragePerClient();
+      const avgElement = document.getElementById('avgPerClient');
+      if (avgElement) avgElement.textContent = money(avgPerClient);
+      
+      // Gráfico simples
+      await loadRevenueChart();
+      
+      console.log('✅ Dados financeiros carregados com sucesso');
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados financeiros:', error);
+      toast('❌ Erro ao carregar dados financeiros');
+    }
   }
   
-  function calculateMonthlyRevenue() {
-    // Implementar cálculo da receita mensal
-    const agendamentos = loadAgendamentos();
-    const mesAtual = new Date().getMonth();
-    const anoAtual = new Date().getFullYear();
-    
-    const agendamentosMes = agendamentos.filter(ag => {
-      const dataAgendamento = new Date(ag.dataConclusao);
-      return ag.status === 'completed' && 
-             dataAgendamento.getMonth() === mesAtual && 
-             dataAgendamento.getFullYear() === anoAtual;
-    });
-    
-    return agendamentosMes.reduce((total, ag) => total + ag.total, 0);
+  async function calculateMonthlyRevenue() {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const mesAtual = new Date().getMonth();
+      const anoAtual = new Date().getFullYear();
+      
+      const agendamentosMes = agendamentos.filter(ag => {
+        if (!ag.dataConclusao) return false;
+        const dataAgendamento = new Date(ag.dataConclusao);
+        return ag.status === 'completed' && 
+               dataAgendamento.getMonth() === mesAtual && 
+               dataAgendamento.getFullYear() === anoAtual;
+      });
+      
+      return agendamentosMes.reduce((total, ag) => total + (ag.total || 0), 0);
+    } catch (error) {
+      console.error('❌ Erro ao calcular receita mensal:', error);
+      return 0;
+    }
   }
   
-  function calculateYearlyRevenue() {
-    // Implementar cálculo da receita anual
-    const agendamentos = loadAgendamentos();
-    const anoAtual = new Date().getFullYear();
-    
-    const agendamentosAno = agendamentos.filter(ag => {
-      const dataAgendamento = new Date(ag.dataConclusao);
-      return ag.status === 'completed' && 
-             dataAgendamento.getFullYear() === anoAtual;
-    });
-    
-    return agendamentosAno.reduce((total, ag) => total + ag.total, 0);
+  async function calculateYearlyRevenue() {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const anoAtual = new Date().getFullYear();
+      
+      const agendamentosAno = agendamentos.filter(ag => {
+        if (!ag.dataConclusao) return false;
+        const dataAgendamento = new Date(ag.dataConclusao);
+        return ag.status === 'completed' && 
+               dataAgendamento.getFullYear() === anoAtual;
+      });
+      
+      return agendamentosAno.reduce((total, ag) => total + (ag.total || 0), 0);
+    } catch (error) {
+      console.error('❌ Erro ao calcular receita anual:', error);
+      return 0;
+    }
   }
   
-  function calculateAveragePerClient() {
-    // Implementar cálculo da média por cliente
-    const agendamentos = loadAgendamentos();
-    const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
-    
-    if (servicosCompletados.length === 0) return 0;
-    
-    const totalReceita = servicosCompletados.reduce((total, ag) => total + ag.total, 0);
-    const clientesUnicos = new Set(servicosCompletados.map(ag => ag.cliente.telefone));
-    
-    return totalReceita / clientesUnicos.size;
+  async function calculateAveragePerClient() {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
+      
+      if (servicosCompletados.length === 0) return 0;
+      
+      const totalReceita = servicosCompletados.reduce((total, ag) => total + (ag.total || 0), 0);
+      const clientesUnicos = new Set(servicosCompletados.map(ag => {
+        if (ag.cliente && ag.cliente.telefone) return ag.cliente.telefone;
+        if (ag.telefone) return ag.telefone;
+        return null;
+      }).filter(Boolean));
+      
+      return clientesUnicos.size > 0 ? totalReceita / clientesUnicos.size : 0;
+    } catch (error) {
+      console.error('❌ Erro ao calcular média por cliente:', error);
+      return 0;
+    }
   }
   
-  function loadRevenueChart() {
-    // Implementar gráfico de receita
-    const chartContainer = document.getElementById('revenueChart');
-    chartContainer.innerHTML = '<div style="color: #666;">Gráfico de receita será implementado</div>';
+  async function loadRevenueChart() {
+    try {
+      const chartContainer = document.getElementById('revenueChart');
+      if (!chartContainer) return;
+      
+      // Gráfico simples de receita dos últimos 6 meses
+      const agendamentos = await loadAgendamentos();
+      const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
+      
+      const meses = [];
+      const receitas = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const data = new Date();
+        data.setMonth(data.getMonth() - i);
+        const mes = data.getMonth();
+        const ano = data.getMonth();
+        
+        const receitaMes = servicosCompletados
+          .filter(ag => {
+            if (!ag.dataConclusao) return false;
+            const dataAgendamento = new Date(ag.dataConclusao);
+            return dataAgendamento.getMonth() === mes && dataAgendamento.getFullYear() === ano;
+          })
+          .reduce((total, ag) => total + (ag.total || 0), 0);
+        
+        meses.push(data.toLocaleDateString('pt-BR', { month: 'short' }));
+        receitas.push(receitaMes);
+      }
+      
+      const maxReceita = Math.max(...receitas);
+      const chartHTML = `
+        <div style="display: flex; align-items: end; justify-content: space-between; height: 200px; padding: 20px;">
+          ${receitas.map((receita, index) => {
+            const altura = maxReceita > 0 ? (receita / maxReceita) * 150 : 0;
+            return `
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div style="
+                  width: 40px; 
+                  height: ${altura}px; 
+                  background: linear-gradient(135deg, #28a745, #20c997);
+                  border-radius: 4px;
+                  transition: all 0.3s ease;
+                "></div>
+                <div style="font-size: 0.8rem; color: #666; text-align: center;">
+                  ${meses[index]}
+                </div>
+                <div style="font-size: 0.7rem; color: #999; text-align: center;">
+                  R$ ${money(receita)}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      
+      chartContainer.innerHTML = chartHTML;
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar gráfico de receita:', error);
+      const chartContainer = document.getElementById('revenueChart');
+      if (chartContainer) {
+        chartContainer.innerHTML = '<div style="color: #666; text-align: center; padding: 40px;">Erro ao carregar gráfico</div>';
+      }
+    }
   }
   
   /* ================ FUNÇÃO DE LOGOUT ================= */
@@ -2752,72 +2881,97 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Obter data do último serviço de um cliente
-  function getLastServiceDate(phone) {
-    const agendamentos = loadAgendamentos();
-    const clienteAgendamentos = agendamentos
-      .filter(ag => ag.cliente.telefone === phone && ag.status === 'completed')
-      .sort((a, b) => new Date(b.dataConclusao) - new Date(a.dataConclusao));
-    
-    if (clienteAgendamentos.length > 0) {
-      return new Date(clienteAgendamentos[0].dataConclusao).toLocaleDateString('pt-BR');
+  async function getLastServiceDate(phone) {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const clienteAgendamentos = agendamentos
+        .filter(ag => {
+          const clienteTelefone = ag.cliente && ag.cliente.telefone ? ag.cliente.telefone : ag.telefone;
+          return clienteTelefone === phone && ag.status === 'completed';
+        })
+        .sort((a, b) => new Date(b.dataConclusao) - new Date(a.dataConclusao));
+      
+      if (clienteAgendamentos.length > 0) {
+        return new Date(clienteAgendamentos[0].dataConclusao).toLocaleDateString('pt-BR');
+      }
+      
+      return 'Nunca';
+    } catch (error) {
+      console.error('❌ Erro ao obter data do último serviço:', error);
+      return 'Nunca';
     }
-    
-    return 'Nunca';
   }
   
   // Calcular total gasto por um cliente
-  function calculateClientTotal(phone) {
-    const agendamentos = loadAgendamentos();
-    const clienteAgendamentos = agendamentos.filter(ag => 
-      ag.cliente.telefone === phone && ag.status === 'completed'
-    );
-    
-    return clienteAgendamentos.reduce((total, ag) => total + ag.total, 0);
+  async function calculateClientTotal(phone) {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const clienteAgendamentos = agendamentos.filter(ag => {
+        const clienteTelefone = ag.cliente && ag.cliente.telefone ? ag.cliente.telefone : ag.telefone;
+        return clienteTelefone === phone && ag.status === 'completed';
+      });
+      
+      return clienteAgendamentos.reduce((total, ag) => total + ag.total, 0);
+    } catch (error) {
+      console.error('❌ Erro ao calcular total gasto:', error);
+      return 0;
+    }
   }
   
   // Verificar se um cliente está ativo (serviço nos últimos 90 dias)
-  function isClientActive(phone) {
-    const agendamentos = loadAgendamentos();
-    const clienteAgendamentos = agendamentos.filter(ag => 
-      ag.cliente.telefone === phone && ag.status === 'completed'
-    );
-    
-    if (clienteAgendamentos.length === 0) return false;
-    
-    // Verificar se teve serviço nos últimos 90 dias
-    const ultimoServico = clienteAgendamentos
-      .sort((a, b) => new Date(b.dataConclusao) - new Date(a.dataConclusao))[0];
-    
-    const dataUltimoServico = new Date(ultimoServico.dataConclusao);
-    const dataLimite = new Date();
-    dataLimite.setDate(dataLimite.getDate() - 90);
-    
-    return dataUltimoServico >= dataLimite;
+  async function isClientActive(phone) {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const clienteAgendamentos = agendamentos.filter(ag => {
+        const clienteTelefone = ag.cliente && ag.cliente.telefone ? ag.cliente.telefone : ag.telefone;
+        return clienteTelefone === phone && ag.status === 'completed';
+      });
+      
+      if (clienteAgendamentos.length === 0) return false;
+      
+      // Verificar se teve serviço nos últimos 90 dias
+      const ultimoServico = clienteAgendamentos
+        .sort((a, b) => new Date(b.dataConclusao) - new Date(a.dataConclusao))[0];
+      
+      const dataUltimoServico = new Date(ultimoServico.dataConclusao);
+      const dataLimite = new Date();
+      dataLimite.setDate(dataLimite.getDate() - 90);
+      
+      return dataUltimoServico >= dataLimite;
+    } catch (error) {
+      console.error('❌ Erro ao verificar se cliente está ativo:', error);
+      return false;
+    }
   }
   
   // Calcular estatísticas dos serviços
-  function calculateServiceStats() {
-    const agendamentos = loadAgendamentos();
-    const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
-    
-    const stats = {};
-    
-    servicosCompletados.forEach(agendamento => {
-      agendamento.servicos.forEach(servico => {
-        const serviceName = servico.nome;
-        if (!stats[serviceName]) {
-          stats[serviceName] = {
-            count: 0,
-            revenue: 0
-          };
-        }
-        
-        stats[serviceName].count++;
-        stats[serviceName].revenue += servico.preco;
+  async function calculateServiceStats() {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const servicosCompletados = agendamentos.filter(ag => ag.status === 'completed');
+      
+      const stats = {};
+      
+      servicosCompletados.forEach(agendamento => {
+        agendamento.servicos.forEach(servico => {
+          const serviceName = servico.nome;
+          if (!stats[serviceName]) {
+            stats[serviceName] = {
+              count: 0,
+              revenue: 0
+            };
+          }
+          
+          stats[serviceName].count++;
+          stats[serviceName].revenue += servico.preco;
+        });
       });
-    });
-    
-    return stats;
+      
+      return stats;
+    } catch (error) {
+      console.error('❌ Erro ao calcular estatísticas dos serviços:', error);
+      return {};
+    }
   }
   
   // Salvar dados do cliente atual
@@ -3163,45 +3317,16 @@ const SUBSCRIPTION_PLANS = {
   
   // Função para zerar todos os horários agendados
   function zerarTodosHorarios() {
-    if (confirm('⚠️ ATENÇÃO: Isso irá remover TODOS os horários agendados do sistema!\n\nTem certeza que deseja continuar?')) {
-      // Limpar agendamentos globais
-      // Agendamentos globais são limpos automaticamente no Firebase
-      
-      // Limpar agendamentos do admin
+    if (confirm('⚠️ Tem certeza que deseja zerar TODOS os horários? Esta ação não pode ser desfeita.')) {
+      // Limpar agendamentos
       localStorage.removeItem('admin_agendamentos');
+      localStorage.removeItem('agendamentosGlobais');
       
-      // Limpar agendamentos temporários de todos os clientes
-      const clients = getAllClients();
-      clients.forEach(client => {
-        const cid = `client_${client.phone}`;
-        try {
-          const clientData = JSON.parse(localStorage.getItem(cid) || '{}');
-          if (clientData.agendamento) {
-            delete clientData.agendamento;
-            localStorage.setItem(cid, JSON.stringify(clientData));
-          }
-        } catch (e) {
-          console.log('Erro ao limpar agendamento do cliente:', client.phone);
-        }
-      });
-      
-      // Limpar agendamento atual se existir
-      if (state.agendamento) {
-        state.agendamento = null;
-        set('agendamento', null);
-        renderAgendamentoStatus();
-      }
-      
-      // Parar temporizador se estiver rodando
-      pararTemporizadorReserva();
-      
-      // Atualizar interface admin se estiver aberta
-      if (document.getElementById('adminCalendar')) {
-        renderAdminCalendar();
-      }
+      // Recarregar dados
+      renderAgendamentos();
+      renderAdminCalendar();
       
       toast('✅ Todos os horários foram zerados com sucesso!');
-      console.log('🧹 Todos os horários agendados foram zerados');
     }
   }
   
@@ -3300,8 +3425,10 @@ const SUBSCRIPTION_PLANS = {
           const agendamentoDoc = {
             data: agendamentoData.data,
             horario: agendamentoData.horario,
-            cliente: agendamentoData.cliente.nome,
-            telefone: agendamentoData.cliente.telefone,
+            cliente: {
+              nome: agendamentoData.cliente.nome,
+              telefone: agendamentoData.cliente.telefone
+            },
             servicos: agendamentoData.servicos,
             total: agendamentoData.total,
             status: 'pendente',
@@ -3321,7 +3448,17 @@ const SUBSCRIPTION_PLANS = {
       
       // Sempre salvar localmente como backup
       let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
-      agendamentos.push(agendamentoData);
+      
+      // Garantir que a estrutura do cliente seja consistente
+      const agendamentoParaSalvar = {
+        ...agendamentoData,
+        cliente: {
+          nome: agendamentoData.cliente.nome,
+          telefone: agendamentoData.cliente.telefone
+        }
+      };
+      
+      agendamentos.push(agendamentoParaSalvar);
       localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
       
       // Também salvar nos agendamentos globais para sincronização
@@ -3329,7 +3466,10 @@ const SUBSCRIPTION_PLANS = {
       agendamentosGlobais.push({
         data: agendamentoData.data,
         horario: agendamentoData.horario,
-        cliente: agendamentoData.cliente.nome,
+        cliente: {
+          nome: agendamentoData.cliente.nome,
+          telefone: agendamentoData.cliente.telefone
+        },
         timestamp: new Date().toISOString(),
         agendamentoId: agendamentoData.id
       });
@@ -3340,9 +3480,9 @@ const SUBSCRIPTION_PLANS = {
       
       // Forçar atualização da interface admin se estiver aberta
       if (document.getElementById('adminCalendar')) {
-        setTimeout(() => {
+        setTimeout(async () => {
           renderAdminCalendar();
-          renderAgendamentos();
+          await renderAgendamentos();
         }, 100);
       }
       
@@ -3367,7 +3507,17 @@ const SUBSCRIPTION_PLANS = {
           
           const agendamentos = [];
           querySnapshot.forEach((doc) => {
-            agendamentos.push({ id: doc.id, ...doc.data() });
+            const agendamento = { id: doc.id, ...doc.data() };
+            
+            // Normalizar estrutura do cliente se necessário
+            if (agendamento.cliente && typeof agendamento.cliente === 'string') {
+              agendamento.cliente = {
+                nome: agendamento.cliente,
+                telefone: agendamento.telefone || 'Telefone não informado'
+              };
+            }
+            
+            agendamentos.push(agendamento);
           });
           
           console.log('✅ Agendamentos carregados do Firebase:', agendamentos.length);
@@ -3385,6 +3535,17 @@ const SUBSCRIPTION_PLANS = {
       
       // Fallback para localStorage
       const agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+      
+      // Normalizar estrutura do cliente se necessário
+      agendamentos.forEach(agendamento => {
+        if (agendamento.cliente && typeof agendamento.cliente === 'string') {
+          agendamento.cliente = {
+            nome: agendamento.cliente,
+            telefone: agendamento.telefone || 'Telefone não informado'
+          };
+        }
+      });
+      
       console.log('📱 Agendamentos carregados localmente:', agendamentos.length);
       return agendamentos;
       
@@ -3534,12 +3695,18 @@ const SUBSCRIPTION_PLANS = {
       
       const totalServicos = agendamento.servicos.reduce((total, servico) => total + servico.preco, 0);
       
+      // Verificar se a estrutura do cliente está correta
+      const clienteNome = agendamento.cliente && agendamento.cliente.nome ? agendamento.cliente.nome : 
+                         (typeof agendamento.cliente === 'string' ? agendamento.cliente : 'Cliente não informado');
+      const clienteTelefone = agendamento.cliente && agendamento.cliente.telefone ? agendamento.cliente.telefone : 
+                             (agendamento.telefone || 'Telefone não informado');
+      
       return `
         <div class="agendamento-card">
           <div class="agendamento-header">
             <div class="agendamento-info">
-              <div class="agendamento-cliente">${agendamento.cliente.nome}</div>
-              <div class="agendamento-contato">${agendamento.cliente.telefone}</div>
+              <div class="agendamento-cliente">${clienteNome}</div>
+              <div class="agendamento-contato">${clienteTelefone}</div>
               <div class="agendamento-data">${dataFormatada} às ${agendamento.horario}</div>
             </div>
             <div class="agendamento-status status-${agendamento.status}">
@@ -3608,13 +3775,14 @@ const SUBSCRIPTION_PLANS = {
     }).join('');
     
     // Atualizar estatísticas
-    updateAgendamentosStats();
+    await updateAgendamentosStats();
   }
   
   // Confirmar agendamento e adicionar pontos
-  function confirmarAgendamento(agendamentoId) {
-    const agendamentos = loadAgendamentos();
-    const agendamento = agendamentos.find(ag => ag.id === agendamentoId);
+  async function confirmarAgendamento(agendamentoId) {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const agendamento = agendamentos.find(ag => ag.id === agendamentoId);
     
     if (!agendamento) {
       toast('❌ Agendamento não encontrado');
@@ -3628,105 +3796,448 @@ const SUBSCRIPTION_PLANS = {
     // Adicionar pontos ao cliente
     const pontosParaAdicionar = agendamento.pontosPendentes;
     
-    // Buscar cliente no localStorage
-    const clientes = getAllClients();
-    const cliente = clientes.find(c => c.phone === agendamento.cliente.telefone);
-    
-    if (cliente) {
-      // Atualizar pontos do cliente
-      cliente.points = (cliente.points || 0) + pontosParaAdicionar;
-      cliente.lastService = new Date().toISOString();
+          // Buscar cliente no localStorage
+      const clientes = await getAllClients();
       
-      // Salvar cliente atualizado
-      const clientesAtualizados = clientes.map(c => 
-        c.phone === agendamento.cliente.telefone ? cliente : c
-      );
-      localStorage.setItem('clients', JSON.stringify(clientesAtualizados));
+      // Verificar se a estrutura do cliente está correta
+      const clienteTelefone = agendamento.cliente && agendamento.cliente.telefone ? agendamento.cliente.telefone : 
+                             (agendamento.telefone || 'Telefone não informado');
+      const clienteNome = agendamento.cliente && agendamento.cliente.nome ? agendamento.cliente.nome : 
+                         (typeof agendamento.cliente === 'string' ? agendamento.cliente : 'Cliente não informado');
       
-      // Salvar agendamento atualizado
-      const agendamentosAtualizados = agendamentos.map(ag => 
-        ag.id === agendamentoId ? agendamento : ag
-      );
-      localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosAtualizados));
+      const cliente = clientes.find(c => c.phone === clienteTelefone);
       
-      toast(`✅ Agendamento confirmado! ${pontosParaAdicionar} pontos adicionados ao cliente ${agendamento.cliente.nome}`);
-      
-      // Atualizar interface
-      renderAgendamentos();
-      loadAdminData(); // Recarregar dados do admin
-    } else {
-      toast('❌ Cliente não encontrado no sistema');
+      if (cliente) {
+        // Atualizar pontos do cliente
+        cliente.points = (cliente.points || 0) + pontosParaAdicionar;
+        cliente.lastService = new Date().toISOString();
+        
+        // Salvar cliente atualizado
+        const clientesAtualizados = clientes.map(c => 
+          c.phone === clienteTelefone ? cliente : c
+        );
+        localStorage.setItem('clients', JSON.stringify(clientesAtualizados));
+        
+        // Salvar agendamento atualizado
+        const agendamentosAtualizados = agendamentos.map(ag => 
+          ag.id === agendamentoId ? agendamento : ag
+        );
+        localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosAtualizados));
+        
+        toast(`✅ Agendamento confirmado! ${pontosParaAdicionar} pontos adicionados ao cliente ${clienteNome}`);
+        
+        // Atualizar interface
+        await renderAgendamentos();
+        await loadAdminData(); // Recarregar dados do admin
+      } else {
+        toast('❌ Cliente não encontrado no sistema');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao confirmar agendamento:', error);
+      toast('❌ Erro ao confirmar agendamento. Tente novamente.');
     }
   }
   
   // Remover agendamento
   async function removerAgendamento(agendamentoId, data, horario) {
-    if (!confirm(`Tem certeza que deseja remover o agendamento de ${data} às ${horario}?`)) {
-      return;
+    if (confirm(`⚠️ Tem certeza que deseja remover o agendamento de ${data} às ${horario}?`)) {
+      try {
+        const agendamentos = await loadAgendamentos();
+        const agendamentosFiltrados = agendamentos.filter(ag => ag.id !== agendamentoId);
+        
+        // Salvar no localStorage
+        localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosFiltrados));
+        
+        // Recarregar lista
+        await renderAgendamentos();
+        
+        toast('✅ Agendamento removido com sucesso!');
+        
+      } catch (error) {
+        console.error('❌ Erro ao remover agendamento:', error);
+        toast('❌ Erro ao remover agendamento');
+      }
     }
-    
-    // Remover do localStorage de agendamentos
-    const agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
-    const agendamentosFiltrados = agendamentos.filter(ag => ag.id !== agendamentoId);
-    localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosFiltrados));
-    
-    // Remover dos horários globais ocupados
-    const agendamentosGlobais = await loadAgendamentos();
-    const globaisFiltrados = agendamentosGlobais.filter(ag => 
-      !(ag.data === data && ag.horario === horario)
-    );
-    localStorage.setItem('agendamentosGlobais', JSON.stringify(globaisFiltrados));
-    
-    // Atualizar interface
-    renderAgendamentos();
-    renderAdminCalendar();
-    
-    toast(`Agendamento removido com sucesso! Horário ${horario} do dia ${data} está livre novamente.`);
-    console.log('🗑️ Agendamento removido:', agendamentoId);
   }
   
-  // Completar agendamento
-  function completarAgendamento(agendamentoId) {
-    const agendamentos = loadAgendamentos();
-    const agendamento = agendamentos.find(ag => ag.id === agendamentoId);
-    
-    if (!agendamento) {
-      toast('❌ Agendamento não encontrado');
-      return;
-    }
-    
-    // Atualizar status
-    agendamento.status = 'completed';
-    agendamento.dataConclusao = new Date().toISOString();
-    
-    // Salvar agendamento atualizado
-    const agendamentosAtualizados = agendamentos.map(ag => 
-      ag.id === agendamentoId ? agendamento : ag
-    );
-    localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosAtualizados));
-    
-    toast(`🎯 Agendamento marcado como concluído!`);
-    
-    // Atualizar interface
-    renderAgendamentos();
-  }
+  // Função completarAgendamento movida para baixo para evitar duplicação
   
-  // Filtrar agendamentos
-  function filterAgendamentos() {
-    const filter = document.getElementById('statusFilter').value;
-    renderAgendamentos(filter);
-  }
+  // Função filterAgendamentos movida para baixo para evitar duplicação
   
   // Atualizar estatísticas dos agendamentos
-  function updateAgendamentosStats() {
-    const agendamentos = loadAgendamentos();
+  async function updateAgendamentosStats() {
+    try {
+      const agendamentos = await loadAgendamentos();
+      
+      const pendingCount = agendamentos.filter(ag => ag.status === 'pending').length;
+      const confirmedCount = agendamentos.filter(ag => ag.status === 'confirmed').length;
+      const completedCount = agendamentos.filter(ag => ag.status === 'completed').length;
+      
+      document.getElementById('pendingCount').textContent = pendingCount;
+      document.getElementById('confirmedCount').textContent = confirmedCount;
+      document.getElementById('completedCount').textContent = completedCount;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar estatísticas:', error);
+    }
+  }
+  
+  // ===== FUNÇÃO PARA ALTERNAR PÁGINA DE SERVIÇOS =====
+  function toggleServicesPage() {
+    const servicesList = document.getElementById('servicesList');
+    const servicesDetailedPage = document.getElementById('servicesDetailedPage');
     
-    const pendingCount = agendamentos.filter(ag => ag.status === 'pending').length;
-    const confirmedCount = agendamentos.filter(ag => ag.status === 'confirmed').length;
-    const completedCount = agendamentos.filter(ag => ag.status === 'completed').length;
+    if (servicesDetailedPage.classList.contains('hidden')) {
+      // Mostrar página detalhada
+      servicesList.style.display = 'none';
+      servicesDetailedPage.classList.remove('hidden');
+      
+      // Scroll para o topo da seção
+      document.getElementById('sec-services').scrollIntoView({ 
+        behavior: 'smooth' 
+      });
+    } else {
+      // Voltar para lista normal
+      servicesDetailedPage.classList.add('hidden');
+      servicesList.style.display = 'block';
+      
+      // Scroll para o topo da seção
+      document.getElementById('sec-services').scrollIntoView({ 
+        behavior: 'smooth' 
+      });
+    }
+  }
+  
+  // ===== FUNÇÕES DO MODAL DE HORÁRIOS SOBREPOSTO =====
+  
+  // Abrir modal de horários
+  async function openHorariosModal(dataSelecionada) {
+    console.log('🕐 Abrindo modal de horários para:', dataSelecionada);
     
-    document.getElementById('pendingCount').textContent = pendingCount;
-    document.getElementById('confirmedCount').textContent = confirmedCount;
-    document.getElementById('completedCount').textContent = completedCount;
+    try {
+      // Atualizar texto da data no header
+      const dataText = document.getElementById('horariosDataSelecionada');
+      if (dataText) {
+        const [year, month, day] = dataSelecionada.split('-').map(Number);
+        // Criar data de forma segura para evitar problemas de fuso horário
+        const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+        const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        dataText.textContent = dataFormatada;
+        console.log('✅ Data atualizada no header:', dataFormatada);
+      } else {
+        console.log('❌ Elemento horariosDataSelecionada não encontrado');
+      }
+      
+      // Renderizar horários
+      console.log('🕐 Iniciando renderização dos horários...');
+      await renderHorariosModal(dataSelecionada);
+      
+      // Mostrar modal de horários
+      const horariosModal = document.getElementById('horariosModal');
+      if (horariosModal) {
+        horariosModal.classList.remove('hidden');
+        console.log('✅ Modal de horários aberto com sucesso');
+        
+        // Verificar se o modal está visível
+        setTimeout(() => {
+          const isVisible = !horariosModal.classList.contains('hidden');
+          console.log('🔍 Modal visível após 100ms:', isVisible);
+          console.log('🔍 Classes do modal:', horariosModal.className);
+        }, 100);
+        
+      } else {
+        console.log('❌ Modal de horários não encontrado');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao abrir modal de horários:', error);
+    }
+  }
+  
+  // Fechar modal de horários
+  function closeHorariosModal() {
+    console.log('🕐 Fechando modal de horários');
+    
+    const horariosModal = document.getElementById('horariosModal');
+    if (horariosModal) {
+      horariosModal.classList.add('hidden');
+      console.log('✅ Modal de horários fechado');
+    }
+    
+    // Limpar seleção de horário
+    if (state.agendamento) {
+      state.agendamento.horario = null;
+    }
+  }
+  
+  // Renderizar horários no modal
+  async function renderHorariosModal(dataSelecionada) {
+    console.log('🕐 Renderizando horários no modal para:', dataSelecionada);
+    
+    try {
+      const horariosContainer = document.getElementById('horariosContainer');
+      if (!horariosContainer) {
+        console.log('❌ Container de horários não encontrado');
+        return;
+      }
+      
+      console.log('✅ Container de horários encontrado, renderizando...');
+      
+      // Horários de funcionamento: 7:00 às 17:00 (intervalos de 1 hora)
+      const horarios = [];
+      for (let hora = 7; hora <= 17; hora++) {
+        const horario = `${hora.toString().padStart(2, '0')}:00`;
+        horarios.push(horario);
+      }
+      
+      console.log('🕐 Horários gerados:', horarios);
+      
+      // Buscar horários já ocupados para esta data
+      const agendamentosGlobais = await loadAgendamentos();
+      const horariosOcupados = agendamentosGlobais
+        .filter(ag => ag.data === dataSelecionada)
+        .map(ag => ag.horario);
+      
+      console.log('📅 Horários ocupados:', horariosOcupados);
+      
+      let horariosHTML = `
+        <div class="horarios-header">
+          <h4>Horários Disponíveis</h4>
+          <p style="color: #ff7f00; font-weight: 600; margin: 8px 0 0 0;">${dataSelecionada}</p>
+          <p style="color: #999; font-size: 0.8rem; margin: 4px 0 0 0;">📱 Role para ver todos os horários</p>
+        </div>
+        <div class="horarios-grid">
+      `;
+      
+      horarios.forEach(horario => {
+        // Verificar se o horário está ocupado
+        const isOcupado = isHorarioOcupado(horario, horariosOcupados);
+        const isAvailable = !isOcupado;
+        
+        let horarioClass = 'horario-item';
+        if (isOcupado) horarioClass += ' ocupado';
+        if (isAvailable) horarioClass += ' disponivel';
+        
+        horariosHTML += `
+          <div class="${horarioClass}" onclick="${isAvailable ? `selectHorarioModal('${horario}', '${dataSelecionada}')` : ''}">
+            ${horario}
+          </div>
+        `;
+      });
+      
+      horariosHTML += '</div>';
+      horariosContainer.innerHTML = horariosHTML;
+      
+      console.log('✅ Horários renderizados no modal com sucesso');
+      console.log('🔍 HTML renderizado:', horariosContainer.innerHTML.substring(0, 200) + '...');
+      
+    } catch (error) {
+      console.error('❌ Erro ao renderizar horários:', error);
+    }
+  }
+  
+  // Selecionar horário no modal
+  function selectHorarioModal(horario, data) {
+    console.log('🕐 Horário selecionado no modal:', horario, 'para data:', data);
+    
+    // Remover seleção anterior
+    document.querySelectorAll('.horario-item.selected').forEach(el => el.classList.remove('selected'));
+    
+    // Selecionar novo horário
+    const selectedHorario = document.querySelector(`.horario-item[onclick*="${horario}"]`);
+    if (selectedHorario) {
+      selectedHorario.classList.add('selected');
+    }
+    
+    // Salvar seleção no estado
+    state.agendamento = { data, horario };
+    
+    // Atualizar botão de confirmação
+    const btnConfirm = document.getElementById('btnConfirmHorario');
+    if (btnConfirm) {
+      btnConfirm.disabled = false;
+      // Formatar data de forma segura para evitar problemas de fuso horário
+      const [year, month, day] = data.split('-').map(Number);
+      const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+      btnConfirm.textContent = `Confirmar: ${dataObj.toLocaleDateString('pt-BR')} às ${horario}`;
+      console.log('✅ Botão de confirmação do modal habilitado');
+    } else {
+      console.log('❌ Botão de confirmação do modal não encontrado');
+    }
+  }
+  
+  // Confirmar agendamento do modal
+  async function confirmarAgendamentoModal() {
+    if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
+      toast('❌ Selecione uma data e horário primeiro');
+      return;
+    }
+    
+    console.log('✅ Confirmando agendamento:', state.agendamento);
+    
+    try {
+      // Salvar agendamento
+      const agendamento = {
+        id: Date.now().toString(),
+        data: state.agendamento.data,
+        horario: state.agendamento.horario,
+        cliente: {
+          nome: state.client?.name || 'Cliente anônimo',
+          telefone: state.client?.phone || 'Não informado'
+        },
+        status: 'pending',
+        dataCriacao: new Date().toISOString()
+      };
+      
+      // Adicionar ao array de agendamentos
+      const agendamentos = await loadAgendamentos();
+      agendamentos.push(agendamento);
+      
+      // Salvar no localStorage
+      localStorage.setItem('agendamentosGlobais', JSON.stringify(agendamentos));
+      
+      // Atualizar interface
+      const agendamentoEscolhido = document.getElementById('agendamentoEscolhido');
+      if (agendamentoEscolhido) {
+        const dataFormatada = new Date(agendamento.data).toLocaleDateString('pt-BR');
+        agendamentoEscolhido.textContent = `✅ Agendado: ${dataFormatada} às ${agendamento.horario}`;
+      }
+      
+      // Fechar modal de horários
+      closeHorariosModal();
+      
+      // Fechar modal de agendamento
+      closeAgendaModal();
+      
+      toast('✅ Agendamento confirmado com sucesso!');
+      
+      // Limpar estado
+      state.agendamento = null;
+      
+    } catch (error) {
+      console.error('❌ Erro ao confirmar agendamento:', error);
+      toast('❌ Erro ao confirmar agendamento. Tente novamente.');
+    }
+  }
+  
+  // Mascarar número de telefone
+  function maskPhone(phone) {
+    if (!phone) return 'Não informado';
+    
+    // Remove tudo que não é número
+    const numbers = phone.replace(/\D/g, '');
+    
+    // Aplica máscara (XX) XXXXX-XXXX
+    if (numbers.length === 11) {
+      return `(${numbers.slice(0,2)}) ${numbers.slice(2,7)}-${numbers.slice(7)}`;
+    } else if (numbers.length === 10) {
+      return `(${numbers.slice(0,2)}) ${numbers.slice(2,6)}-${numbers.slice(6)}`;
+    }
+    
+    return phone; // Retorna original se não conseguir mascarar
+  }
+  
+  // Função para zerar todos os horários (admin)
+  async function zerarTodosHorarios() {
+    if (confirm('⚠️ Tem certeza que deseja zerar TODOS os horários? Esta ação não pode ser desfeita.')) {
+      // Limpar agendamentos
+      localStorage.removeItem('admin_agendamentos');
+      localStorage.removeItem('agendamentosGlobais');
+      
+      // Recarregar dados
+      await renderAgendamentos();
+      renderAdminCalendar();
+      
+      toast('✅ Todos os horários foram zerados com sucesso!');
+    }
+  }
+  
+  // Função para filtrar agendamentos
+  async function filterAgendamentos() {
+    const filter = document.getElementById('statusFilter').value;
+    await renderAgendamentos(filter);
+  }
+  
+  // Função para confirmar agendamento (admin)
+  async function confirmarAgendamento(agendamentoId) {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const agendamento = agendamentos.find(ag => ag.id === agendamentoId);
+      
+      if (!agendamento) {
+        toast('❌ Agendamento não encontrado');
+        return;
+      }
+      
+      // Atualizar status
+      agendamento.status = 'confirmed';
+      agendamento.dataConfirmacao = new Date().toISOString();
+      
+      // Salvar no localStorage
+      localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
+      
+      // Recarregar lista
+      await renderAgendamentos();
+      
+      toast('✅ Agendamento confirmado com sucesso!');
+      
+    } catch (error) {
+      console.error('❌ Erro ao confirmar agendamento:', error);
+      toast('❌ Erro ao confirmar agendamento');
+    }
+  }
+  
+  // Função para completar agendamento (admin)
+  async function completarAgendamento(agendamentoId) {
+    try {
+      const agendamentos = await loadAgendamentos();
+      const agendamento = agendamentos.find(ag => ag.id === agendamentoId);
+      
+      if (!agendamento) {
+        toast('❌ Agendamento não encontrado');
+        return;
+      }
+      
+      // Atualizar status
+      agendamento.status = 'completed';
+      agendamento.dataConclusao = new Date().toISOString();
+      
+      // Salvar no localStorage
+      localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
+      
+      // Recarregar lista
+      await renderAgendamentos();
+      
+      toast('✅ Agendamento marcado com sucesso!');
+      
+    } catch (error) {
+      console.error('❌ Erro ao completar agendamento:', error);
+      toast('❌ Erro ao completar agendamento');
+    }
+  }
+  
+  // Função para remover agendamento (admin)
+  async function removerAgendamento(agendamentoId, data, horario) {
+    if (confirm(`⚠️ Tem certeza que deseja remover o agendamento de ${data} às ${horario}?`)) {
+      try {
+        const agendamentos = await loadAgendamentos();
+        const agendamentosFiltrados = agendamentos.filter(ag => ag.id !== agendamentoId);
+        
+        // Salvar no localStorage
+        localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentosFiltrados));
+        
+              // Recarregar lista
+      await renderAgendamentos();
+      
+      toast('✅ Agendamento removido com sucesso!');
+        
+      } catch (error) {
+        console.error('❌ Erro ao remover agendamento:', error);
+        toast('❌ Erro ao remover agendamento');
+      }
+    }
   }
   
