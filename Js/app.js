@@ -2000,23 +2000,8 @@ const SUBSCRIPTION_PLANS = {
   
   // Verificar se um horário está ocupado
   function isHorarioOcupado(horario, horariosOcupados) {
-    // Converter horário para minutos para facilitar comparação
-    const [hora, minuto] = horario.split(':').map(Number);
-    const horarioMinutos = hora * 60 + minuto;
-    
-    // Verificar se este horário ou o próximo horário estão ocupados (2 horas de serviço)
-    for (let i = 0; i < 2; i++) {
-      const horarioVerificar = horarioMinutos + (i * 60); // +60 minutos = 1 hora
-      const horaVerificar = Math.floor(horarioVerificar / 60);
-      const minutoVerificar = horarioVerificar % 60;
-      const horarioString = `${horaVerificar.toString().padStart(2, '0')}:${minutoVerificar.toString().padStart(2, '0')}`;
-      
-      if (horariosOcupados.includes(horarioString)) {
-        return true;
-      }
-    }
-    
-    return false;
+    // Verificar se este horário específico está na lista de horários ocupados
+    return horariosOcupados.includes(horario);
   }
   
   // Selecionar horário
@@ -3633,6 +3618,7 @@ const SUBSCRIPTION_PLANS = {
           let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
           const agendamentoParaSalvar = {
             ...agendamentoData,
+            horariosOcupados: horariosOcupados, // Incluir horários ocupados
             cliente: {
               nome: agendamentoData.cliente.nome,
               telefone: agendamentoData.cliente.telefone
@@ -3650,6 +3636,7 @@ const SUBSCRIPTION_PLANS = {
           let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
           const agendamentoParaSalvar = {
             ...agendamentoData,
+            horariosOcupados: horariosOcupados, // Incluir horários ocupados
             cliente: {
               nome: agendamentoData.cliente.nome,
               telefone: agendamentoData.cliente.telefone
@@ -3665,6 +3652,7 @@ const SUBSCRIPTION_PLANS = {
         let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
         const agendamentoParaSalvar = {
           ...agendamentoData,
+          horariosOcupados: horariosOcupados, // Incluir horários ocupados
           cliente: {
             nome: agendamentoData.cliente.nome,
             telefone: agendamentoData.cliente.telefone
