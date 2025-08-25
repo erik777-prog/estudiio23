@@ -120,6 +120,11 @@
         </div>
         
         <div class="services-detailed-grid">
+          <!-- SERVIÇOS PARA CARROS -->
+          <div class="services-category-header">
+            <h3>🚗 Serviços para Carros</h3>
+          </div>
+          
           <!-- Lavagem Simples -->
           <div class="service-detailed-card">
             <div class="service-detailed-image">
@@ -128,6 +133,10 @@
             <div class="service-detailed-content">
               <h3>Lavagem Simples</h3>
               <div class="service-price">R$ 70,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+1.000 pts ao fazer</div>
+                <div class="points-redeem">13.000 pts para trocar</div>
+              </div>
               <p>Lavagem externa completa com produtos de alta qualidade, incluindo limpeza de rodas e pneus.</p>
               <div class="service-features">
                 <span class="feature">✓ Lavagem externa</span>
@@ -147,6 +156,10 @@
             <div class="service-detailed-content">
               <h3>Lavagem Detalhada</h3>
               <div class="service-price">R$ 100,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+1.500 pts ao fazer</div>
+                <div class="points-redeem">15.000 pts para trocar</div>
+              </div>
               <p>Lavagem completa interna e externa com atenção especial aos detalhes e acabamentos.</p>
               <div class="service-features">
                 <span class="feature">✓ Lavagem externa completa</span>
@@ -158,6 +171,52 @@
             </div>
           </div>
 
+          <!-- Higienização 5 lugares -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/higenizacao.png" alt="Higienização Interna (5 lugares)">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Higienização Interna (5 lugares)</h3>
+              <div class="service-price">R$ 450,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+3.500 pts ao fazer</div>
+                <div class="points-redeem">50.000 pts para trocar</div>
+              </div>
+              <p>Limpeza profunda do interior com produtos bactericidas e desodorização completa para veículos de 5 lugares.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza de estofados</span>
+                <span class="feature">✓ Desodorização</span>
+                <span class="feature">✓ Produtos bactericidas</span>
+                <span class="feature">✓ Limpeza de ar condicionado</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('higienizacao_5', 'Higienização Interna (5 lugares)', 450.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Higienização 7 lugares -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/higenizacao.png" alt="Higienização Interna (7 lugares)">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Higienização Interna (7 lugares)</h3>
+              <div class="service-price">R$ 600,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+4.000 pts ao fazer</div>
+                <div class="points-redeem">50.000 pts para trocar</div>
+              </div>
+              <p>Limpeza profunda do interior com produtos bactericidas e desodorização completa para veículos de 7 lugares.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza de estofados</span>
+                <span class="feature">✓ Desodorização</span>
+                <span class="feature">✓ Produtos bactericidas</span>
+                <span class="feature">✓ Limpeza de ar condicionado</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('higienizacao_7', 'Higienização Interna (7 lugares)', 600.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
           <!-- Polimento -->
           <div class="service-detailed-card">
             <div class="service-detailed-image">
@@ -166,6 +225,10 @@
             <div class="service-detailed-content">
               <h3>Polimento Técnico (a partir de)</h3>
               <div class="service-price">R$ 450,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+5.000 pts ao fazer</div>
+                <div class="points-redeem">70.000 pts para trocar</div>
+              </div>
               <p>Polimento profissional para restaurar o brilho da pintura e remover riscos superficiais.</p>
               <div class="service-features">
                 <span class="feature">✓ Avaliação da pintura</span>
@@ -186,6 +249,10 @@
             <div class="service-detailed-content">
               <h3>Vitrificação 12m (incluso polimento)</h3>
               <div class="service-price">R$ 1.000,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+9.000 pts ao fazer</div>
+                <div class="points-redeem">9.000 pts para trocar</div>
+              </div>
               <p>Proteção duradoura da pintura com cerâmica de alta tecnologia e brilho intenso por 12 meses.</p>
               <div class="service-features">
                 <span class="feature">✓ Preparação da pintura</span>
@@ -197,42 +264,216 @@
             </div>
           </div>
 
-          <!-- Higienização 5 lugares -->
+          <!-- Enceramento -->
           <div class="service-detailed-card">
             <div class="service-detailed-image">
-              <img src="public/services/higenizacao.png" alt="Higienização Interna (5 lugares)">
+              <img src="public/services/cristalizacao.png" alt="Enceramento">
             </div>
             <div class="service-detailed-content">
-              <h3>Higienização Interna (5 lugares)</h3>
-              <div class="service-price">R$ 450,00</div>
-              <p>Limpeza profunda do interior com produtos bactericidas e desodorização completa para veículos de 5 lugares.</p>
-              <div class="service-features">
-                <span class="feature">✓ Limpeza de estofados</span>
-                <span class="feature">✓ Desodorização</span>
-                <span class="feature">✓ Produtos bactericidas</span>
-                <span class="feature">✓ Limpeza de ar condicionado</span>
+              <h3>Enceramento</h3>
+              <div class="service-price">R$ 25,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+500 pts ao fazer</div>
+                <div class="points-redeem">4.000 pts para trocar</div>
               </div>
-              <button class="btn primary" onclick="addToCart('higienizacao_5', 'Higienização Interna (5 lugares)', 450.00)">Adicionar ao Carrinho</button>
+              <p>Proteção e brilho da pintura com cera de alta qualidade por 1 mês.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza da pintura</span>
+                <span class="feature">✓ Aplicação de cera</span>
+                <span class="feature">✓ Proteção por 1 mês</span>
+                <span class="feature">✓ Brilho intenso</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('encerramento', 'Enceramento', 25.00)">Adicionar ao Carrinho</button>
             </div>
           </div>
 
-          <!-- Higienização 7 lugares -->
+          <!-- Enceramento Premium -->
           <div class="service-detailed-card">
             <div class="service-detailed-image">
-              <img src="public/services/higenizacao.png" alt="Higienização Interna (7 lugares)">
+              <img src="public/services/cristalizacao.png" alt="Enceramento Premium">
             </div>
             <div class="service-detailed-content">
-              <h3>Higienização Interna (7 lugares)</h3>
-              <div class="service-price">R$ 600,00</div>
-              <p>Limpeza profunda do interior com produtos bactericidas e desodorização completa para veículos de 7 lugares.</p>
-              <div class="service-features">
-                <span class="feature">✓ Limpeza de estofados</span>
-                <span class="feature">✓ Desodorização</span>
-                <span class="feature">✓ Produtos bactericidas</span>
-                <span class="feature">✓ Limpeza de ar condicionado</span>
+              <h3>Enceramento Premium</h3>
+              <div class="service-price">R$ 50,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+1.000 pts ao fazer</div>
+                <div class="points-redeem">8.000 pts para trocar</div>
               </div>
-              <button class="btn primary" onclick="addToCart('higienizacao_7', 'Higienização Interna (7 lugares)', 600.00)">Adicionar ao Carrinho</button>
+              <p>Enceramento de alta qualidade com brilho intenso e proteção duradoura por 8 meses.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza profunda</span>
+                <span class="feature">✓ Cera premium</span>
+                <span class="feature">✓ Proteção por 8 meses</span>
+                <span class="feature">✓ Brilho excepcional</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('encerramento_premium', 'Enceramento Premium', 50.00)">Adicionar ao Carrinho</button>
             </div>
+          </div>
+
+          <!-- Limpeza de Motor -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/cristalizacao.png" alt="Limpeza de Motor">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Limpeza de Motor</h3>
+              <div class="service-price">R$ 100,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+1.500 pts ao fazer</div>
+                <div class="points-redeem">15.000 pts para trocar</div>
+              </div>
+              <p>Limpeza profissional do compartimento do motor com produtos específicos e proteção dos componentes.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza do motor</span>
+                <span class="feature">✓ Produtos específicos</span>
+                <span class="feature">✓ Proteção dos componentes</span>
+                <span class="feature">✓ Finalização profissional</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('limpeza_motor', 'Limpeza de Motor', 100.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Remoção de Chuva Ácida -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/cristalizacao.png" alt="Remoção de Chuva Ácida">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Remoção de Chuva Ácida (Vidros)</h3>
+              <div class="service-price">R$ 90,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+1.350 pts ao fazer</div>
+                <div class="points-redeem">13.500 pts para trocar</div>
+              </div>
+              <p>Remoção profissional de manchas de chuva ácida dos vidros com produtos específicos.</p>
+              <div class="service-features">
+                <span class="feature">✓ Avaliação dos vidros</span>
+                <span class="feature">✓ Produtos específicos</span>
+                <span class="feature">✓ Remoção de manchas</span>
+                <span class="feature">✓ Proteção dos vidros</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('chuva_acida', 'Remoção de Chuva Ácida (Vidros)', 90.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Vitrificação de Plásticos -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/vitrificacao.png" alt="Vitrificação de Plásticos">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Vitrificação de Plásticos</h3>
+              <div class="service-price">R$ 250,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+3.750 pts ao fazer</div>
+                <div class="points-redeem">37.500 pts para trocar</div>
+              </div>
+              <p>Proteção duradoura de plásticos internos e externos com cerâmica por 12 meses.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza dos plásticos</span>
+                <span class="feature">✓ Aplicação de cerâmica</span>
+                <span class="feature">✓ Proteção por 12 meses</span>
+                <span class="feature">✓ Brilho duradouro</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('vitrificacao_plasticos', 'Vitrificação de Plásticos', 250.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Clareamento Motor, Bacalhau e Bengalas -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/cristalizacao.png" alt="Clareamento Motor, Bacalhau e Bengalas">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Clareamento Motor, Bacalhau e Bengalas</h3>
+              <div class="service-price">R$ 50,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+750 pts ao fazer</div>
+                <div class="points-redeem">7.500 pts para trocar</div>
+              </div>
+              <p>Clareamento e revitalização de componentes plásticos do motor e acessórios.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza profunda</span>
+                <span class="feature">✓ Clareamento</span>
+                <span class="feature">✓ Revitalização</span>
+                <span class="feature">✓ Proteção</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('clareamento_motor', 'Clareamento Motor, Bacalhau e Bengalas', 50.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Restauração de Farol -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/polimento.png" alt="Restauração de Farol">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Restauração de Farol</h3>
+              <div class="service-price">R$ 150,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+2.250 pts ao fazer</div>
+                <div class="points-redeem">22.500 pts para trocar</div>
+              </div>
+              <p>Restauração completa dos faróis com polimento e proteção por 5 anos.</p>
+              <div class="service-features">
+                <span class="feature">✓ Avaliação dos faróis</span>
+                <span class="feature">✓ Polimento profissional</span>
+                <span class="feature">✓ Proteção por 5 anos</span>
+                <span class="feature">✓ Transparência restaurada</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('restauracao_farol', 'Restauração de Farol', 150.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Revitalizador de Plásticos -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/cristalizacao.png" alt="Revitalizador de Plásticos">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Revitalizador de Plásticos</h3>
+              <div class="service-price">R$ 50,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+750 pts ao fazer</div>
+                <div class="points-redeem">7.500 pts para trocar</div>
+              </div>
+              <p>Revitalização e proteção de plásticos internos e externos por 6 meses.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza profunda</span>
+                <span class="feature">✓ Revitalização</span>
+                <span class="feature">✓ Proteção por 6 meses</span>
+                <span class="feature">✓ Brilho restaurado</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('revitalizador_plasticos', 'Revitalizador de Plásticos', 50.00)">Adicionar ao Carrinho</button>
+            </div>
+          </div>
+
+          <!-- Micro Pintura -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/polimento.png" alt="Micro Pintura">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Micro Pintura</h3>
+              <div class="service-price">A consultar</div>
+              <div class="service-points-info">
+                <div class="points-earn">Sem pontos</div>
+                <div class="points-redeem">Sem troca</div>
+              </div>
+              <p>Serviço de micro pintura para pequenos reparos e correções na pintura do veículo.</p>
+              <div class="service-features">
+                <span class="feature">✓ Avaliação do dano</span>
+                <span class="feature">✓ Preparação da área</span>
+                <span class="feature">✓ Aplicação profissional</span>
+                <span class="feature">✓ Valor a consultar no WhatsApp</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('micro_pintura', 'Micro Pintura', 0.00)">Consultar Preço</button>
+            </div>
+          </div>
+
+          <!-- SERVIÇOS PARA MOTOS -->
+          <div class="services-category-header">
+            <h3>🏍️ Serviços para Motos</h3>
           </div>
 
           <!-- Lavagem Moto -->
@@ -243,6 +484,10 @@
             <div class="service-detailed-content">
               <h3>Lavagem Moto Detalhada</h3>
               <div class="service-price">R$ 50,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+800 pts ao fazer</div>
+                <div class="points-redeem">6.500 pts para trocar</div>
+              </div>
               <p>Lavagem completa e detalhada para motocicletas com produtos específicos e atenção aos detalhes.</p>
               <div class="service-features">
                 <span class="feature">✓ Lavagem externa completa</span>
@@ -254,22 +499,49 @@
             </div>
           </div>
 
-          <!-- Enceramento -->
+          <!-- Polimento Moto -->
           <div class="service-detailed-card">
             <div class="service-detailed-image">
-              <img src="public/services/cristalizacao.png" alt="Enceramento">
+              <img src="public/services/polimento.png" alt="Polimento Moto">
             </div>
             <div class="service-detailed-content">
-              <h3>Enceramento</h3>
-              <div class="service-price">R$ 20,00</div>
-              <p>Proteção e brilho da pintura com cera de alta qualidade por 1 mês.</p>
-              <div class="service-features">
-                <span class="feature">✓ Limpeza da pintura</span>
-                <span class="feature">✓ Aplicação de cera</span>
-                <span class="feature">✓ Proteção por 1 mês</span>
-                <span class="feature">✓ Brilho intenso</span>
+              <h3>Polimento Moto</h3>
+              <div class="service-price">A partir de R$ 100,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+1.500 pts ao fazer</div>
+                <div class="points-redeem">15.000 pts para trocar</div>
               </div>
-              <button class="btn primary" onclick="addToCart('encerramento', 'Enceramento', 20.00)">Adicionar ao Carrinho</button>
+              <p>Polimento profissional para motocicletas com avaliação personalizada no WhatsApp.</p>
+              <div class="service-features">
+                <span class="feature">✓ Avaliação personalizada</span>
+                <span class="feature">✓ Polimento técnico</span>
+                <span class="feature">✓ Proteção da pintura</span>
+                <span class="feature">✓ A partir de R$100 - avaliação no WhatsApp</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('polimento_moto', 'Polimento Moto', 100.00)">Consultar Preço</button>
+            </div>
+          </div>
+
+          <!-- Revitalizador de Plásticos Moto -->
+          <div class="service-detailed-card">
+            <div class="service-detailed-image">
+              <img src="public/services/cristalizacao.png" alt="Revitalizador de Plásticos (Moto)">
+            </div>
+            <div class="service-detailed-content">
+              <h3>Revitalizador de Plásticos (Moto)</h3>
+              <div class="service-price">R$ 25,00</div>
+              <div class="service-points-info">
+                <div class="points-earn">+375 pts ao fazer</div>
+                <div class="points-redeem">3.750 pts para trocar</div>
+              </div>
+              <p>Revitalização e proteção de plásticos de motocicletas por 6 meses.</p>
+              <div class="service-features">
+                <span class="feature">✓ Limpeza profunda</span>
+                <span class="feature">✓ Revitalização</span>
+                <span class="feature">✓ Proteção por 6 meses</span>
+                <span class="feature">✓ Brilho restaurado</span>
+              </div>
+              <button class="btn primary" onclick="addToCart('revitalizador_plasticos_moto', 'Revitalizador de Plásticos (Moto)', 25.00)">Adicionar ao Carrinho</button>
             </div>
           </div>
         </div>

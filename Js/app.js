@@ -47,21 +47,42 @@ const SUBSCRIPTION_PLANS = {
   let calendarCurrentYear = new Date().getFullYear();
   
   const SERVICES = [
-    {id:'lavagem_simples', nome:'Lavagem Simples', preco:70.00, pontos:1000, img:'public/services/lavagem_simples.png'},
-    {id:'lavagem_detalhada', nome:'Lavagem Detalhada', preco:100.00, pontos:1500, img:'public/services/lavagem_detalhada.png'},
-    {id:'higienizacao_5', nome:'Higienização Interna (5 lugares)', preco:450.00, pontos:3500, img:'public/services/higenizacao.png'},
-    {id:'higienizacao_7', nome:'Higienização Interna (7 lugares)', preco:600.00, pontos:4000, img:'public/services/higenizacao.png'},
-    {id:'lavagem_moto', nome:'Lavagem Moto Detalhada', preco:50.00, pontos:800, img:'public/services/lavagem_simples.png'},
-    {id:'polimento', nome:'Polimento Técnico (a partir de)', preco:450.00, pontos:5000, img:'public/services/polimento.png', obs:'Sujeito a análise no WhatsApp'},
-    {id:'vitrificacao', nome:'Vitrificação 12m (incluso polimento)', preco:1000.00, pontos:9000, img:'public/services/vitrificacao.png'},
-    {id:'enceramento', nome:'Enceramento', preco:20.00, pontos:500, img:'public/services/cristalizacao.png', obs:'Proteção e brilho de 1 mês'}
+    // SERVIÇOS PARA CARROS
+    {id:'lavagem_simples', nome:'Lavagem Simples', preco:70.00, pontos:1000, pontosTroca:13000, img:'public/services/lavagem_simples.png'},
+    {id:'lavagem_detalhada', nome:'Lavagem Detalhada', preco:100.00, pontos:1500, pontosTroca:15000, img:'public/services/lavagem_detalhada.png'},
+    {id:'higienizacao_5', nome:'Higienização Interna (5 lugares)', preco:450.00, pontos:3500, pontosTroca:50000, img:'public/services/higenizacao.png'},
+    {id:'higienizacao_7', nome:'Higienização Interna (7 lugares)', preco:600.00, pontos:4000, pontosTroca:50000, img:'public/services/higenizacao.png'},
+    {id:'polimento', nome:'Polimento Técnico (a partir de)', preco:450.00, pontos:5000, pontosTroca:70000, img:'public/services/polimento.png', obs:'Sujeito a análise no WhatsApp'},
+    {id:'vitrificacao', nome:'Vitrificação 12m (incluso polimento)', preco:1000.00, pontos:9000, pontosTroca:9000, img:'public/services/vitrificacao.png'},
+    {id:'enceramento', nome:'Enceramento', preco:25.00, pontos:500, pontosTroca:4000, img:'public/services/cristalizacao.png', obs:'Proteção e brilho de 1 mês'},
+    {id:'enceramento_premium', nome:'Enceramento Premium', preco:50.00, pontos:1000, pontosTroca:8000, img:'public/services/cristalizacao.png', obs:'Brilho e proteção de 8 meses'},
+    {id:'limpeza_motor', nome:'Limpeza de Motor', preco:100.00, pontos:1500, pontosTroca:15000, img:'public/services/cristalizacao.png'},
+    {id:'chuva_acida', nome:'Remoção de Chuva Ácida (Vidros)', preco:90.00, pontos:1350, pontosTroca:13500, img:'public/services/cristalizacao.png'},
+    {id:'vitrificacao_plasticos', nome:'Vitrificação de Plásticos', preco:250.00, pontos:3750, pontosTroca:37500, img:'public/services/vitrificacao.png', obs:'12 meses de proteção'},
+    {id:'clareamento_motor', nome:'Clareamento Motor, Bacalhau e Bengalas', preco:50.00, pontos:750, pontosTroca:7500, img:'public/services/cristalizacao.png'},
+    {id:'restauracao_farol', nome:'Restauração de Farol', preco:150.00, pontos:2250, pontosTroca:22500, img:'public/services/polimento.png', obs:'5 anos de proteção'},
+    {id:'revitalizador_plasticos', nome:'Revitalizador de Plásticos', preco:50.00, pontos:750, pontosTroca:7500, img:'public/services/cristalizacao.png', obs:'6 meses de proteção'},
+    {id:'micro_pintura', nome:'Micro Pintura', preco:0.00, pontos:0, pontosTroca:0, img:'public/services/polimento.png', obs:'Valor a consultar no WhatsApp'},
+    
+    // SERVIÇOS PARA MOTOS
+    {id:'lavagem_moto', nome:'Lavagem Moto Detalhada', preco:50.00, pontos:800, pontosTroca:6500, img:'public/services/lavagem_simples.png'},
+    {id:'polimento_moto', nome:'Polimento Moto', preco:100.00, pontos:1500, pontosTroca:15000, img:'public/services/polimento.png', obs:'A partir de R$100 - avaliação no WhatsApp'},
+    {id:'revitalizador_plasticos_moto', nome:'Revitalizador de Plásticos (Moto)', preco:25.00, pontos:375, pontosTroca:3750, img:'public/services/cristalizacao.png', obs:'6 meses de proteção'}
   ];
   
   const REWARDS = [
-    {id:'r_lav_simples',   name:'Lavagem Simples GRÁTIS',     cost:20000},
-    {id:'r_lav_detalhada', name:'Lavagem Detalhada GRÁTIS',   cost:35000},
-    {id:'r_motor',         name:'Lavagem de Motor GRÁTIS',    cost:50000},
-    {id:'r_hig',           name:'Higienização Interna GRÁTIS',cost:80000}
+    {id:'r_lav_simples',   name:'Lavagem Simples GRÁTIS',     cost:13000},
+    {id:'r_lav_detalhada', name:'Lavagem Detalhada GRÁTIS',   cost:15000},
+    {id:'r_motor',         name:'Limpeza de Motor GRÁTIS',    cost:15000},
+    {id:'r_hig',           name:'Higienização Interna GRÁTIS',cost:50000},
+    {id:'r_polimento',     name:'Polimento Técnico GRÁTIS',   cost:70000},
+    {id:'r_vitrificacao',  name:'Vitrificação GRÁTIS',        cost:9000},
+    {id:'r_enceramento',   name:'Enceramento GRÁTIS',         cost:4000},
+    {id:'r_enceramento_premium', name:'Enceramento Premium GRÁTIS', cost:8000},
+    {id:'r_restauracao_farol', name:'Restauração de Farol GRÁTIS', cost:22500},
+    {id:'r_vitrificacao_plasticos', name:'Vitrificação de Plásticos GRÁTIS', cost:37500},
+    {id:'r_lavagem_moto',  name:'Lavagem Moto GRÁTIS',       cost:6500},
+    {id:'r_polimento_moto', name:'Polimento Moto GRÁTIS',    cost:15000}
   ];
   
   /* ================ STORAGE / STATE ================ */
@@ -87,7 +108,7 @@ const SUBSCRIPTION_PLANS = {
   const $$ = sel => document.querySelectorAll(sel);
   const money = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const toast = msg => { const t = $('#toast'); t.textContent = msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); };
-  // Funções de persistência com Firebase (fallback para localStorage)
+  // Funções de persistência com Firebase (forçar uso do Firebase)
   async function set(k,v){ 
     try {
       if (window.firebaseDB && window.firebaseServices) {
@@ -95,14 +116,28 @@ const SUBSCRIPTION_PLANS = {
         const userDoc = doc(window.firebaseDB, 'users', getUserId());
         await setDoc(userDoc, { [k]: v }, { merge: true });
         console.log(`💾 Dados salvos no Firebase: ${k}`);
+        
+        // Salvar no localStorage apenas como backup
+        localStorage.setItem(KEY(k), JSON.stringify(v)); 
+        if(k==='points'){ localStorage.setItem(KEY('points'), v); }
+      } else {
+        throw new Error('Firebase não disponível');
       }
-      // Sempre salvar no localStorage como backup
-      localStorage.setItem(KEY(k), JSON.stringify(v)); 
-      if(k==='points'){ localStorage.setItem(KEY('points'), v); }
     } catch (error) {
-      console.error(`❌ Erro ao salvar no Firebase, usando localStorage: ${k}`, error);
-      localStorage.setItem(KEY(k), JSON.stringify(v)); 
-      if(k==='points'){ localStorage.setItem(KEY('points'), v); }
+      console.error(`❌ Erro ao salvar no Firebase: ${k}`, error);
+      
+      // Se for erro de permissões ou Firebase indisponível, usar localStorage
+      if (error.message.includes('permissions') || 
+          error.message.includes('Missing or insufficient permissions') ||
+          error.message.includes('Firebase não disponível')) {
+        console.log(`⚠️ Usando localStorage como fallback para: ${k}`);
+        localStorage.setItem(KEY(k), JSON.stringify(v)); 
+        if(k==='points'){ localStorage.setItem(KEY('points'), v); }
+      } else {
+        // Para outros erros, tentar localStorage também
+        localStorage.setItem(KEY(k), JSON.stringify(v)); 
+        if(k==='points'){ localStorage.setItem(KEY('points'), v); }
+      }
     }
   }
   
@@ -117,11 +152,13 @@ const SUBSCRIPTION_PLANS = {
           console.log(`📖 Dados lidos do Firebase: ${k}`);
           return docSnap.data()[k];
         }
+      } else {
+        throw new Error('Firebase não disponível');
       }
-      // Fallback para localStorage
+      // Fallback para localStorage apenas se Firebase não retornou dados
       return JSON.parse(localStorage.getItem(KEY(k)));
     } catch (error) {
-      console.error(`❌ Erro ao ler do Firebase, usando localStorage: ${k}`, error);
+      console.error(`❌ Erro ao ler do Firebase: ${k}`, error);
       return JSON.parse(localStorage.getItem(KEY(k)));
     }
   }
@@ -158,6 +195,9 @@ const SUBSCRIPTION_PLANS = {
       await window.firebaseServices.signInAnonymously(window.firebaseAuth);
       console.log('✅ Firebase inicializado com sucesso!');
       
+      // Testar conexão com Firebase
+      await testFirebaseConnection();
+      
       // Configurar listeners em tempo real
       setupRealtimeListeners();
       
@@ -165,8 +205,34 @@ const SUBSCRIPTION_PLANS = {
       
     } catch (error) {
       console.error('❌ Erro ao inicializar Firebase:', error);
-      console.log('⚠️ Continuando com localStorage como fallback');
+      toast('❌ Erro ao conectar com Firebase. Recarregue a página.');
       return false;
+    }
+  }
+  
+  // Função para testar conexão com Firebase
+  async function testFirebaseConnection() {
+    try {
+      console.log('🧪 Testando conexão com Firebase...');
+      
+      // Tentar ler dados do Firestore (usando coleção que deve existir)
+      const { collection, getDocs } = window.firebaseServices;
+      const testRef = collection(window.firebaseDB, 'users');
+      await getDocs(testRef);
+      
+      console.log('✅ Conexão com Firebase testada com sucesso!');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Erro ao testar conexão com Firebase:', error);
+      
+      // Se for erro de permissões, não falhar completamente
+      if (error.message.includes('permissions') || error.message.includes('Missing or insufficient permissions')) {
+        console.log('⚠️ Firebase conectado, mas com permissões limitadas - continuando...');
+        return true; // Permitir continuar mesmo com permissões limitadas
+      }
+      
+      throw new Error('Falha na conexão com Firebase');
     }
   }
   
@@ -740,21 +806,28 @@ const SUBSCRIPTION_PLANS = {
     // Inicializar Firebase
     try {
       console.log('🔥 Inicializando Firebase...');
-      await initializeFirebase();
+      const firebaseOk = await initializeFirebase();
       
-      // Executar migração se necessário
-      const hasBeenMigrated = localStorage.getItem('firebase_migrated');
-      if (!hasBeenMigrated) {
-        console.log('🔄 Primeira execução com Firebase, executando migração...');
-        await migrateLocalStorageToFirebase();
-        localStorage.setItem('firebase_migrated', 'true');
+      if (firebaseOk) {
+        console.log('✅ Firebase inicializado com sucesso!');
+        
+        // Executar migração se necessário
+        const hasBeenMigrated = localStorage.getItem('firebase_migrated');
+        if (!hasBeenMigrated) {
+          console.log('🔄 Primeira execução com Firebase, executando migração...');
+          await migrateLocalStorageToFirebase();
+          localStorage.setItem('firebase_migrated', 'true');
+        }
+        
+        // Sincronizar dados
+        await syncFirebaseToLocalStorage();
+      } else {
+        console.log('⚠️ Firebase não inicializado completamente, continuando com localStorage');
       }
-      
-      // Sincronizar dados
-      await syncFirebaseToLocalStorage();
       
     } catch (error) {
       console.error('❌ Erro ao inicializar Firebase:', error);
+      console.log('⚠️ Continuando com localStorage como fallback');
     }
     
     // Verificar se já existe um cliente logado
@@ -1389,6 +1462,9 @@ const SUBSCRIPTION_PLANS = {
     // Atualizar botão flutuante
     updateFloatingCart(state.cart.length);
     
+    // Atualizar status do agendamento
+    renderAgendamentoStatus();
+    
     // Botão de pagamento
     let payBox = document.getElementById('payBoxCustom');
     if(!payBox){
@@ -1750,12 +1826,17 @@ const SUBSCRIPTION_PLANS = {
     calendarHTML += '</div>';
     calendar.innerHTML = calendarHTML;
     
-    // Selecionar o primeiro dia disponível por padrão
+    // Selecionar o primeiro dia disponível por padrão apenas se não houver agendamento
     const firstAvailableDay = Math.max(1, today.getDate());
     if (firstAvailableDay <= totalDays && calendarCurrentMonth === today.getMonth() && calendarCurrentYear === today.getFullYear()) {
       // Aguardar um pouco para o DOM ser renderizado
       setTimeout(async () => {
-        await selectDate(firstAvailableDay);
+        // Só selecionar automaticamente se não houver agendamento
+        if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
+          await selectDate(firstAvailableDay);
+        } else {
+          console.log('📅 Agendamento já existe, não selecionando automaticamente');
+        }
       }, 100);
     }
   }
@@ -1792,8 +1873,15 @@ const SUBSCRIPTION_PLANS = {
     console.log('📅 Ano atual:', currentYear);
     console.log('📅 Mês atual:', currentMonth);
     
-    // Salvar a data selecionada no estado
-    state.agendamento = { data: formattedDate, horario: null };
+    // Salvar a data selecionada no estado, preservando horário se existir
+    const horarioAtual = state.agendamento?.horario;
+    state.agendamento = { data: formattedDate, horario: horarioAtual };
+    
+    // IMPORTANTE: Salvar imediatamente no Firebase/localStorage para persistir
+    // Só salvar se tiver horário, para evitar salvar undefined
+    if (horarioAtual) {
+      await set('agendamento', state.agendamento);
+    }
     
     // Mostrar mensagem de instrução
     const agendaHorarios = document.getElementById('agendaHorarios');
@@ -1841,15 +1929,30 @@ const SUBSCRIPTION_PLANS = {
     
     // Buscar horários já ocupados para esta data
     const agendamentosGlobais = await loadAgendamentos();
-    const horariosOcupados = agendamentosGlobais
+    const horariosOcupados = [];
+    
+    agendamentosGlobais
       .filter(ag => ag.data === dataSelecionada)
-      .map(ag => ag.horario);
+      .forEach(ag => {
+        // Se o agendamento tem horariosOcupados, usar eles
+        if (ag.horariosOcupados && Array.isArray(ag.horariosOcupados)) {
+          horariosOcupados.push(...ag.horariosOcupados);
+        } else {
+          // Fallback: calcular horários ocupados (2 horas)
+          const [hora, minuto] = ag.horario.split(':').map(Number);
+          for (let i = 0; i < 2; i++) {
+            const horaCalculada = hora + i;
+            const horarioString = `${horaCalculada.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
+            horariosOcupados.push(horarioString);
+          }
+        }
+      });
     
     console.log('📅 Horários ocupados:', horariosOcupados);
     
-    // Formatar data para exibição (corrigindo o problema do dia anterior)
-    const [year, month, day] = dataSelecionada.split('-').map(Number);
-    const dataObj = new Date(year, month - 1, day); // month - 1 porque Date usa 0-11 para meses
+          // Formatar data para exibição (corrigindo o problema do dia anterior)
+      const [year, month, day] = dataSelecionada.split('-').map(Number);
+      const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0); // month - 1 porque Date usa 0-11 para meses, adicionar hora para evitar timezone
     
     const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
       weekday: 'long',
@@ -1897,12 +2000,27 @@ const SUBSCRIPTION_PLANS = {
   
   // Verificar se um horário está ocupado
   function isHorarioOcupado(horario, horariosOcupados) {
-    // Para intervalos de 1 hora, apenas verificar se o horário exato está ocupado
-    return horariosOcupados.includes(horario);
+    // Converter horário para minutos para facilitar comparação
+    const [hora, minuto] = horario.split(':').map(Number);
+    const horarioMinutos = hora * 60 + minuto;
+    
+    // Verificar se este horário ou o próximo horário estão ocupados (2 horas de serviço)
+    for (let i = 0; i < 2; i++) {
+      const horarioVerificar = horarioMinutos + (i * 60); // +60 minutos = 1 hora
+      const horaVerificar = Math.floor(horarioVerificar / 60);
+      const minutoVerificar = horarioVerificar % 60;
+      const horarioString = `${horaVerificar.toString().padStart(2, '0')}:${minutoVerificar.toString().padStart(2, '0')}`;
+      
+      if (horariosOcupados.includes(horarioString)) {
+        return true;
+      }
+    }
+    
+    return false;
   }
   
   // Selecionar horário
-  function selectHorario(horario, data) {
+  async function selectHorario(horario, data) {
     console.log('🕐 Horário selecionado:', horario, 'para data:', data);
     
     // Remover seleção anterior
@@ -1916,6 +2034,9 @@ const SUBSCRIPTION_PLANS = {
     
     // Salvar seleção
     state.agendamento = { data, horario };
+    
+    // IMPORTANTE: Salvar imediatamente no Firebase/localStorage para persistir
+    await set('agendamento', state.agendamento);
     
     // Atualizar botão de confirmação
     const btnConfirm = document.getElementById('btnConfirmAgenda');
@@ -1947,20 +2068,37 @@ const SUBSCRIPTION_PLANS = {
   function validarPagamento() {
     const erros = [];
     
+    console.log('🔍 DEBUG - Validando pagamento...');
+    console.log('🔍 DEBUG - State agendamento:', state.agendamento);
+    console.log('🔍 DEBUG - State agendamento.data:', state.agendamento?.data);
+    console.log('🔍 DEBUG - State agendamento.horario:', state.agendamento?.horario);
+    console.log('🔍 DEBUG - State cart:', state.cart);
+    console.log('🔍 DEBUG - State buscaLeva:', state.buscaLeva);
+    
     // Verificar se há serviços no carrinho
     if (!state.cart || state.cart.length === 0) {
       erros.push('❌ Selecione pelo menos um serviço');
     }
     
-    // Verificar se há agendamento (obrigatório apenas para pagamento)
+    // Verificar se há agendamento (obrigatório para pagamento)
     if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
       erros.push('❌ Selecione uma data e horário para o agendamento');
+      console.log('❌ DEBUG - Agendamento inválido:', {
+        temAgendamento: !!state.agendamento,
+        temData: !!state.agendamento?.data,
+        temHorario: !!state.agendamento?.horario
+      });
     }
     
-    // Verificar se decidiu sobre busca e leva (obrigatório apenas para pagamento)
+    // Verificar se decidiu sobre busca e leva (obrigatório para pagamento)
     if (state.buscaLeva === undefined || state.buscaLeva === null) {
       erros.push('❌ Decida se deseja o serviço de busca e leva');
     }
+    
+    console.log('🔍 DEBUG - Validação concluída:', {
+      valido: erros.length === 0,
+      erros: erros
+    });
     
     return {
       valido: erros.length === 0,
@@ -2044,8 +2182,11 @@ const SUBSCRIPTION_PLANS = {
   // Enviar pedido para WhatsApp
   async function enviarPedidoWhatsApp() {
     console.log('🔄 Iniciando envio do pedido...');
-    console.log('📅 Agendamento:', state.agendamento);
+    console.log('📅 Agendamento completo:', state.agendamento);
+    console.log('📅 Agendamento.data:', state.agendamento?.data);
+    console.log('📅 Agendamento.horario:', state.agendamento?.horario);
     console.log('🛒 Carrinho:', state.cart);
+    console.log('🔍 State completo:', state);
     
     // Validações usando a nova função
     const validacao = validarPagamento();
@@ -2099,56 +2240,59 @@ const SUBSCRIPTION_PLANS = {
     // Salvar agendamento no sistema admin
     saveAgendamento(agendamentoData);
     
-    // AGORA SIM: Bloquear horários após confirmação de pagamento
-    const agendamentosGlobais = await loadAgendamentos();
-    
-    // Determinar quantos horários bloquear baseado no tipo de serviço
-    let horariosParaBloquear = 1; // Por padrão, bloquear apenas 1 hora
-    
-    // Verificar se há serviços que precisam de 2 horas
-    const servicosComDuasHoras = ['lavagem_simples', 'lavagem_detalhada'];
-    const temServicoComDuasHoras = state.cart.some(item => 
-      servicosComDuasHoras.includes(item.id)
-    );
-    
-    if (temServicoComDuasHoras) {
-      horariosParaBloquear = 2; // Bloquear 2 horas para limpeza simples/detalhada
-    }
-    
-    // Adicionar agendamentos para os horários necessários
-    const horaInicial = parseInt(state.agendamento.horario.split(':')[0]);
-    for (let i = 0; i < horariosParaBloquear; i++) {
-      const horaAtual = horaInicial + i;
-      const horarioString = `${horaAtual.toString().padStart(2, '0')}:00`;
+      // AGORA SIM: Bloquear horários após confirmação de pagamento
+      const agendamentosGlobais = await loadAgendamentos();
       
-      // Verificar se não está duplicado e se está dentro do horário de funcionamento
-      const jaExiste = agendamentosGlobais.some(ag => 
-        ag.data === state.agendamento.data && ag.horario === horarioString
+      // Determinar quantos horários bloquear baseado no tipo de serviço
+      let horariosParaBloquear = 1; // Por padrão, bloquear apenas 1 hora
+      
+      // Verificar se há serviços que precisam de 2 horas
+      const servicosComDuasHoras = ['lavagem_simples', 'lavagem_detalhada'];
+      const temServicoComDuasHoras = state.cart.some(item => 
+        servicosComDuasHoras.includes(item.id)
       );
-      if (!jaExiste && horaAtual <= 17) {
-        agendamentosGlobais.push({
-          data: state.agendamento.data,
-          horario: horarioString,
-          cliente: {
-            nome: state.client ? state.client.name : 'Cliente',
-            telefone: state.client ? state.client.phone : 'Não informado'
-          },
-          timestamp: new Date().toISOString()
-        });
+      
+      if (temServicoComDuasHoras) {
+        horariosParaBloquear = 2; // Bloquear 2 horas para limpeza simples/detalhada
       }
-    }
-    
-    // Agendamentos globais agora são salvos diretamente pelo saveAgendamento() no Firebase
-    console.log('🔒 Horários bloqueados após pagamento confirmado:', horariosParaBloquear);
-    
-    // Parar temporizador de reserva (pagamento confirmado)
-    pararTemporizadorReserva();
+      
+      // Adicionar agendamentos para os horários necessários
+      const horaInicial = parseInt(state.agendamento.horario.split(':')[0]);
+      for (let i = 0; i < horariosParaBloquear; i++) {
+        const horaAtual = horaInicial + i;
+        const horarioString = `${horaAtual.toString().padStart(2, '0')}:00`;
+        
+        // Verificar se não está duplicado e se está dentro do horário de funcionamento
+        const jaExiste = agendamentosGlobais.some(ag => 
+          ag.data === state.agendamento.data && ag.horario === horarioString
+        );
+        if (!jaExiste && horaAtual <= 17) {
+          agendamentosGlobais.push({
+            data: state.agendamento.data,
+            horario: horarioString,
+            cliente: {
+              nome: state.client ? state.client.name : 'Cliente',
+              telefone: state.client ? state.client.phone : 'Não informado'
+            },
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+      
+      // Agendamentos globais agora são salvos diretamente pelo saveAgendamento() no Firebase
+      console.log('🔒 Horários bloqueados após pagamento confirmado:', horariosParaBloquear);
+      
+      // Parar temporizador de reserva (pagamento confirmado)
+      pararTemporizadorReserva();
     
     // Construir mensagem do WhatsApp
     let mensagem = `*NOVO PEDIDO - ESTÚDIO 23* 🚗\n\n`;
     mensagem += `*Cliente:* ${state.client.name}\n`;
     mensagem += `*WhatsApp:* ${state.client.phone}\n`;
-    mensagem += `*Data:* ${new Date(state.agendamento.data).toLocaleDateString('pt-BR')}\n`;
+    // Formatar data corretamente para evitar problema de timezone
+    const [year, month, day] = state.agendamento.data.split('-').map(Number);
+    const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+    mensagem += `*Data:* ${dataObj.toLocaleDateString('pt-BR')}\n`;
     mensagem += `*Horário:* ${state.agendamento.horario}\n\n`;
     
     if (state.buscaLeva) {
@@ -2520,7 +2664,12 @@ const SUBSCRIPTION_PLANS = {
             <span class="activity-status status-${ag.status}">${statusText[ag.status]}</span>
           </div>
           <div class="activity-details">
-            ${new Date(ag.data).toLocaleDateString('pt-BR')} às ${ag.horario} - R$ ${money(ag.total)}
+            ${(() => {
+              // Formatar data corretamente para evitar problema de timezone
+              const [year, month, day] = ag.data.split('-').map(Number);
+              const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+              return dataObj.toLocaleDateString('pt-BR');
+            })()} às ${ag.horario} - R$ ${money(ag.total)}
           </div>
           <div class="activity-time">${dataFormatada}</div>
         </div>
@@ -3000,12 +3149,12 @@ const SUBSCRIPTION_PLANS = {
       await saveUserDataToFirebase(getUserId(), userData);
       
       // Salvar localmente como backup
-      localStorage.setItem(`points_${cid}`, state.points.toString());
-      localStorage.setItem(`cart_${cid}`, JSON.stringify(state.cart));
-      localStorage.setItem(`agendamento_${cid}`, JSON.stringify(state.agendamento));
-      localStorage.setItem(`buscaLeva_${cid}`, JSON.stringify(state.buscaLeva));
-      localStorage.setItem(`subscription_${cid}`, JSON.stringify(state.subscription));
-      localStorage.setItem(`history_${cid}`, JSON.stringify(state.history));
+      localStorage.setItem(KEY('points'), state.points.toString());
+      localStorage.setItem(KEY('cart'), JSON.stringify(state.cart));
+      localStorage.setItem(KEY('agendamento'), JSON.stringify(state.agendamento));
+      localStorage.setItem(KEY('buscaLeva'), JSON.stringify(state.buscaLeva));
+      localStorage.setItem(KEY('subscription'), JSON.stringify(state.subscription));
+      localStorage.setItem(KEY('history'), JSON.stringify(state.history));
       
       // Salvar cliente na lista de clientes
       const clients = await getAllClients();
@@ -3083,7 +3232,7 @@ const SUBSCRIPTION_PLANS = {
       console.log('⚠️ Dados não encontrados no Firebase, carregando do localStorage');
       
       // Fallback para localStorage
-      const savedPoints = localStorage.getItem(`points_${cid}`);
+      const savedPoints = localStorage.getItem(KEY('points'));
       if (savedPoints) {
         state.points = parseInt(savedPoints);
         console.log('✅ Pontos carregados:', state.points);
@@ -3093,7 +3242,7 @@ const SUBSCRIPTION_PLANS = {
       }
       
       // Carregar carrinho
-      const savedCart = localStorage.getItem(`cart_${cid}`);
+      const savedCart = localStorage.getItem(KEY('cart'));
       if (savedCart) {
         try {
           const parsedCart = JSON.parse(savedCart);
@@ -3109,7 +3258,7 @@ const SUBSCRIPTION_PLANS = {
       }
       
       // Carregar agendamento
-      const savedAgendamento = localStorage.getItem(`agendamento_${cid}`);
+      const savedAgendamento = localStorage.getItem(KEY('agendamento'));
       if (savedAgendamento && savedAgendamento !== 'null') {
         state.agendamento = JSON.parse(savedAgendamento);
         console.log('✅ Agendamento carregado:', state.agendamento);
@@ -3119,7 +3268,7 @@ const SUBSCRIPTION_PLANS = {
       }
       
       // Carregar busca e leva
-      const savedBuscaLeva = localStorage.getItem(`buscaLeva_${cid}`);
+      const savedBuscaLeva = localStorage.getItem(KEY('buscaLeva'));
       if (savedBuscaLeva) {
         state.buscaLeva = JSON.parse(savedBuscaLeva);
         console.log('✅ Busca e leva carregado:', state.buscaLeva);
@@ -3129,7 +3278,7 @@ const SUBSCRIPTION_PLANS = {
       }
       
       // Carregar assinatura
-      const savedSubscription = localStorage.getItem(`subscription_${cid}`);
+      const savedSubscription = localStorage.getItem(KEY('subscription'));
       if (savedSubscription && savedSubscription !== 'null') {
         state.subscription = JSON.parse(savedSubscription);
         console.log('✅ Assinatura carregada:', state.subscription);
@@ -3139,7 +3288,7 @@ const SUBSCRIPTION_PLANS = {
       }
       
       // Carregar histórico
-      const savedHistory = localStorage.getItem(`history_${cid}`);
+      const savedHistory = localStorage.getItem(KEY('history'));
       if (savedHistory) {
         try {
           const parsedHistory = JSON.parse(savedHistory);
@@ -3180,12 +3329,34 @@ const SUBSCRIPTION_PLANS = {
     
     if (!agendamentoDiv || !btnOpenAgenda) return;
     
+    console.log('🔍 DEBUG - renderAgendamentoStatus chamado');
+    console.log('🔍 DEBUG - State agendamento antes:', state.agendamento);
+    
+    // Verificar se o agendamento foi perdido e tentar restaurar
+    if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
+      console.log('🔍 DEBUG - Agendamento perdido, tentando restaurar...');
+      // Tentar carregar do localStorage primeiro (mais rápido)
+      const savedAgendamento = JSON.parse(localStorage.getItem(KEY('agendamento')) || 'null');
+      console.log('🔍 DEBUG - Agendamento salvo no localStorage:', savedAgendamento);
+      if (savedAgendamento && savedAgendamento.data && savedAgendamento.horario) {
+        state.agendamento = savedAgendamento;
+        console.log('✅ Agendamento restaurado do localStorage:', state.agendamento);
+      }
+    }
+    
+    console.log('🔍 DEBUG - State agendamento após verificação:', state.agendamento);
+    
     if (state.agendamento && state.agendamento.data && state.agendamento.horario) {
       // Agendamento selecionado
       agendamentoDiv.innerHTML = `
         <div style="background: rgba(40, 167, 69, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #28a745;">
           <strong style="color: #28a745;">✓ Agendado para:</strong><br>
-          ${new Date(state.agendamento.data).toLocaleDateString('pt-BR')} às ${state.agendamento.horario}
+          ${(() => {
+            // Formatar data corretamente para evitar problema de timezone
+            const [year, month, day] = state.agendamento.data.split('-').map(Number);
+            const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+            return dataObj.toLocaleDateString('pt-BR');
+          })()} às ${state.agendamento.horario}
         </div>
       `;
       btnOpenAgenda.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
@@ -3413,69 +3584,100 @@ const SUBSCRIPTION_PLANS = {
   
   /* ================ GERENCIAMENTO DE AGENDAMENTOS ================= */
   
-  // Salvar agendamento no sistema
+  // Salvar agendamento no sistema (forçar Firebase)
   async function saveAgendamento(agendamentoData) {
+    console.log('💾 Iniciando saveAgendamento...');
+    console.log('📊 Dados do agendamento:', agendamentoData);
+    console.log('🔥 Firebase disponível?', !!window.firebaseDB);
+    console.log('🔥 Firebase services disponível?', !!window.firebaseServices);
+    
     try {
-      // Salvar no Firebase se disponível
+      // Tentar salvar no Firebase primeiro
       if (window.firebaseDB && window.firebaseServices) {
         try {
+          console.log('🔥 Salvando no Firebase...');
           const { addDoc, collection } = window.firebaseServices;
           const agendamentosRef = collection(window.firebaseDB, 'agendamentos');
+          
+          // Calcular horários ocupados (2 horas de serviço)
+          const [hora, minuto] = agendamentoData.horario.split(':').map(Number);
+          const horariosOcupados = [];
+          
+          // Adicionar o horário principal e o próximo horário (2 horas de serviço)
+          for (let i = 0; i < 2; i++) {
+            const horaCalculada = hora + i;
+            const horarioString = `${horaCalculada.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
+            horariosOcupados.push(horarioString);
+          }
           
           const agendamentoDoc = {
             data: agendamentoData.data,
             horario: agendamentoData.horario,
+            horariosOcupados: horariosOcupados, // Lista de horários ocupados
             cliente: {
               nome: agendamentoData.cliente.nome,
               telefone: agendamentoData.cliente.telefone
             },
-            servicos: agendamentoData.servicos,
-            total: agendamentoData.total,
+            servicos: agendamentoData.servicos || [],
+            total: agendamentoData.total || 0,
             status: 'pendente',
             timestamp: new Date().toISOString(),
             userId: getUserId(),
             agendamentoId: agendamentoData.id
           };
           
-          await addDoc(agendamentosRef, agendamentoDoc);
-          console.log('✅ Agendamento salvo no Firebase com sucesso!');
+          const docRef = await addDoc(agendamentosRef, agendamentoDoc);
+          console.log('✅ Agendamento salvo no Firebase com sucesso! ID:', docRef.id);
+          
+          // Salvar no localStorage como backup
+          let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+          const agendamentoParaSalvar = {
+            ...agendamentoData,
+            cliente: {
+              nome: agendamentoData.cliente.nome,
+              telefone: agendamentoData.cliente.telefone
+            },
+            firebaseId: docRef.id
+          };
+          agendamentos.push(agendamentoParaSalvar);
+          localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
           
         } catch (firebaseError) {
           console.error('❌ Erro ao salvar no Firebase:', firebaseError);
-          console.log('⚠️ Salvando localmente como fallback');
+          console.log('⚠️ Salvando apenas no localStorage');
+          
+          // Salvar apenas no localStorage
+          let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+          const agendamentoParaSalvar = {
+            ...agendamentoData,
+            cliente: {
+              nome: agendamentoData.cliente.nome,
+              telefone: agendamentoData.cliente.telefone
+            }
+          };
+          agendamentos.push(agendamentoParaSalvar);
+          localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
         }
+      } else {
+        console.log('⚠️ Firebase não disponível, salvando apenas no localStorage');
+        
+        // Salvar apenas no localStorage
+        let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
+        const agendamentoParaSalvar = {
+          ...agendamentoData,
+          cliente: {
+            nome: agendamentoData.cliente.nome,
+            telefone: agendamentoData.cliente.telefone
+          }
+        };
+        agendamentos.push(agendamentoParaSalvar);
+        localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
       }
       
-      // Sempre salvar localmente como backup
-      let agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
-      
-      // Garantir que a estrutura do cliente seja consistente
-      const agendamentoParaSalvar = {
-        ...agendamentoData,
-        cliente: {
-          nome: agendamentoData.cliente.nome,
-          telefone: agendamentoData.cliente.telefone
-        }
-      };
-      
-      agendamentos.push(agendamentoParaSalvar);
-      localStorage.setItem('admin_agendamentos', JSON.stringify(agendamentos));
-      
-      // Também salvar nos agendamentos globais para sincronização
-      const agendamentosGlobais = await loadAgendamentos();
-      agendamentosGlobais.push({
-        data: agendamentoData.data,
-        horario: agendamentoData.horario,
-        cliente: {
-          nome: agendamentoData.cliente.nome,
-          telefone: agendamentoData.cliente.telefone
-        },
-        timestamp: new Date().toISOString(),
-        agendamentoId: agendamentoData.id
-      });
-      // Agendamentos globais agora são salvos diretamente pelo saveAgendamento() no Firebase
-      
       console.log('✅ Agendamento salvo com sucesso:', agendamentoData);
+      
+      // Contar total de agendamentos
+      const agendamentos = JSON.parse(localStorage.getItem('admin_agendamentos') || '[]');
       console.log('📊 Total de agendamentos no sistema:', agendamentos.length);
       
       // Forçar atualização da interface admin se estiver aberta
@@ -3489,7 +3691,7 @@ const SUBSCRIPTION_PLANS = {
       return true;
     } catch (error) {
       console.error('❌ Erro ao salvar agendamento:', error);
-      toast('Erro ao salvar agendamento. Tente novamente.');
+      toast('Erro ao salvar agendamento. Firebase necessário. Tente novamente.');
       return false;
     }
   }
@@ -3500,6 +3702,7 @@ const SUBSCRIPTION_PLANS = {
       // Tentar carregar do Firebase primeiro
       if (window.firebaseDB && window.firebaseServices) {
         try {
+          console.log('🔥 Carregando agendamentos do Firebase...');
           const { collection, getDocs, query, orderBy } = window.firebaseServices;
           const agendamentosRef = collection(window.firebaseDB, 'agendamentos');
           const q = query(agendamentosRef, orderBy('timestamp', 'desc'));
@@ -3679,7 +3882,10 @@ const SUBSCRIPTION_PLANS = {
     }
     
     container.innerHTML = filteredAgendamentos.map(agendamento => {
-      const dataFormatada = new Date(agendamento.data).toLocaleDateString('pt-BR');
+      // Formatar data corretamente para evitar problema de timezone
+      const [year, month, day] = agendamento.data.split('-').map(Number);
+      const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+      const dataFormatada = dataObj.toLocaleDateString('pt-BR');
       const statusText = {
         'pending': 'Pendente',
         'confirmed': 'Confirmado',
@@ -3967,10 +4173,8 @@ const SUBSCRIPTION_PLANS = {
       console.log('✅ Modal de horários fechado');
     }
     
-    // Limpar seleção de horário
-    if (state.agendamento) {
-      state.agendamento.horario = null;
-    }
+    // NÃO limpar seleção de horário - manter o que foi selecionado
+    console.log('🔍 DEBUG - Mantendo horário selecionado:', state.agendamento?.horario);
   }
   
   // Renderizar horários no modal
@@ -3997,9 +4201,24 @@ const SUBSCRIPTION_PLANS = {
       
       // Buscar horários já ocupados para esta data
       const agendamentosGlobais = await loadAgendamentos();
-      const horariosOcupados = agendamentosGlobais
+      const horariosOcupados = [];
+      
+      agendamentosGlobais
         .filter(ag => ag.data === dataSelecionada)
-        .map(ag => ag.horario);
+        .forEach(ag => {
+          // Se o agendamento tem horariosOcupados, usar eles
+          if (ag.horariosOcupados && Array.isArray(ag.horariosOcupados)) {
+            horariosOcupados.push(...ag.horariosOcupados);
+          } else {
+            // Fallback: calcular horários ocupados (2 horas)
+            const [hora, minuto] = ag.horario.split(':').map(Number);
+            for (let i = 0; i < 2; i++) {
+              const horaCalculada = hora + i;
+              const horarioString = `${horaCalculada.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
+              horariosOcupados.push(horarioString);
+            }
+          }
+        });
       
       console.log('📅 Horários ocupados:', horariosOcupados);
       
@@ -4040,8 +4259,10 @@ const SUBSCRIPTION_PLANS = {
   }
   
   // Selecionar horário no modal
-  function selectHorarioModal(horario, data) {
+  async function selectHorarioModal(horario, data) {
     console.log('🕐 Horário selecionado no modal:', horario, 'para data:', data);
+    console.log('🔍 DEBUG - Data recebida:', data);
+    console.log('🔍 DEBUG - Horário recebido:', horario);
     
     // Remover seleção anterior
     document.querySelectorAll('.horario-item.selected').forEach(el => el.classList.remove('selected'));
@@ -4054,6 +4275,10 @@ const SUBSCRIPTION_PLANS = {
     
     // Salvar seleção no estado
     state.agendamento = { data, horario };
+    console.log('🔍 DEBUG - State agendamento após salvar:', state.agendamento);
+    
+    // IMPORTANTE: Salvar imediatamente no Firebase/localStorage para persistir
+    await set('agendamento', state.agendamento);
     
     // Atualizar botão de confirmação
     const btnConfirm = document.getElementById('btnConfirmHorario');
@@ -4071,6 +4296,10 @@ const SUBSCRIPTION_PLANS = {
   
   // Confirmar agendamento do modal
   async function confirmarAgendamentoModal() {
+    console.log('🔍 DEBUG - State agendamento antes da validação:', state.agendamento);
+    console.log('🔍 DEBUG - State agendamento.data:', state.agendamento?.data);
+    console.log('🔍 DEBUG - State agendamento.horario:', state.agendamento?.horario);
+    
     if (!state.agendamento || !state.agendamento.data || !state.agendamento.horario) {
       toast('❌ Selecione uma data e horário primeiro');
       return;
@@ -4092,18 +4321,30 @@ const SUBSCRIPTION_PLANS = {
         dataCriacao: new Date().toISOString()
       };
       
-      // Adicionar ao array de agendamentos
-      const agendamentos = await loadAgendamentos();
-      agendamentos.push(agendamento);
+      // Salvar no Firebase usando a função saveAgendamento
+      const sucesso = await saveAgendamento(agendamento);
       
-      // Salvar no localStorage
-      localStorage.setItem('agendamentosGlobais', JSON.stringify(agendamentos));
+      if (!sucesso) {
+        throw new Error('Falha ao salvar agendamento no Firebase');
+      }
+      
+      // IMPORTANTE: Salvar o agendamento no state do usuário atual
+      await set('agendamento', state.agendamento);
+      
+      console.log('💾 Agendamento salvo no localStorage:', agendamento);
+      console.log('💾 Agendamento salvo no state do usuário:', state.agendamento);
+      console.log('📊 Total de agendamentos no localStorage:', adminAgendamentos.length);
       
       // Atualizar interface
       const agendamentoEscolhido = document.getElementById('agendamentoEscolhido');
       if (agendamentoEscolhido) {
-        const dataFormatada = new Date(agendamento.data).toLocaleDateString('pt-BR');
+        // Usar a data original do state.agendamento para evitar problemas de timezone
+        const [year, month, day] = state.agendamento.data.split('-').map(Number);
+        const dataObj = new Date(year, month - 1, day, 12, 0, 0, 0);
+        const dataFormatada = dataObj.toLocaleDateString('pt-BR');
         agendamentoEscolhido.textContent = `✅ Agendado: ${dataFormatada} às ${agendamento.horario}`;
+        console.log('🔍 DEBUG - Data exibida no agendamentoEscolhido:', dataFormatada);
+        console.log('🔍 DEBUG - Horário exibido:', agendamento.horario);
       }
       
       // Fechar modal de horários
@@ -4114,8 +4355,8 @@ const SUBSCRIPTION_PLANS = {
       
       toast('✅ Agendamento confirmado com sucesso!');
       
-      // Limpar estado
-      state.agendamento = null;
+      // NÃO limpar o estado aqui - manter o agendamento para o pagamento
+      // state.agendamento será limpo apenas após o pagamento ser confirmado
       
     } catch (error) {
       console.error('❌ Erro ao confirmar agendamento:', error);

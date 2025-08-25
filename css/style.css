@@ -3181,6 +3181,30 @@ input::placeholder, textarea::placeholder {
     gap: 30px;
   }
   
+  /* Cabeçalhos de categoria */
+  .services-category-header {
+    text-align: center;
+    margin: 40px 0 20px 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    border: 2px solid #dee2e6;
+  }
+  
+  .services-category-header:first-child {
+    margin-top: 0;
+  }
+  
+  .services-category-header h3 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #333;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
   .service-detailed-card {
     background: white;
     border: 1px solid #e9ecef;
@@ -3222,6 +3246,48 @@ input::placeholder, textarea::placeholder {
     font-weight: 700;
     color: #333;
     margin-bottom: 8px;
+  }
+  
+  /* Informações de pontos */
+  .service-points-info {
+    display: flex;
+    gap: 16px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+  }
+  
+  .points-earn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .points-earn::before {
+    content: '🎁';
+    font-size: 1rem;
+  }
+  
+  .points-redeem {
+    background: linear-gradient(135deg, #ff7f00, #ff9500);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .points-redeem::before {
+    content: '⭐';
+    font-size: 1rem;
   }
   
   .service-price {
